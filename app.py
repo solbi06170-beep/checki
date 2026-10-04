@@ -289,27 +289,36 @@ body,
 
 /* 핵심: 화면 잘림 방지 */
 .block-container {
+    width: 92% !important;
+    max-width: 760px !important;
+    margin: 0 auto !important;
+    padding-top: 24px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    padding-bottom: 90px !important;
+    box-sizing: border-box !important;
+}
 
+[data-testid="stAppViewContainer"] > .main {
     width: 100% !important;
+    overflow-x: hidden !important;
+}
 
-    max-width: 900px !important;
-
+[data-testid="stMainBlockContainer"] {
+    width: 92% !important;
+    max-width: 760px !important;
     margin-left: auto !important;
     margin-right: auto !important;
+}
 
-    padding-top: 24px !important;
-
-    padding-left:
-        max(20px, env(safe-area-inset-left))
-        !important;
-
-    padding-right:
-        max(20px, env(safe-area-inset-right))
-        !important;
-
-    padding-bottom: 90px !important;
-
-    box-sizing: border-box !important;
+@media (max-width: 800px) {
+    .block-container,
+    [data-testid="stMainBlockContainer"] {
+        width: 88% !important;
+        max-width: 680px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
 }
 
 
