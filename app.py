@@ -2,378 +2,503 @@ import streamlit as st
 from google import genai
 from PIL import Image
 import time
+import re
 from datetime import datetime, timedelta
 
 # =========================================================
-# 기본 설정
+# CHECKI
 # =========================================================
 
 st.set_page_config(
-    page_title="CHECKI | 충동결제 방어",
-    page_icon="🛡️",
+    page_title="체키 | CHECKI",
+    page_icon="✓",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# 디자인
+# CSS
 # =========================================================
 
 st.markdown("""
 <style>
 
+html, body, [class*="css"] {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "Noto Sans KR", sans-serif;
+}
+
 .stApp {
     background:
-        radial-gradient(circle at 10% 0%, #fff1f3 0%, transparent 32%),
-        linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+        radial-gradient(circle at 100% 0%, #eef6ff 0%, transparent 30%),
+        #f7faff;
 }
 
 .block-container {
-    max-width: 820px;
-    padding-top: 2rem;
-    padding-bottom: 6rem;
+    max-width: 760px;
+    padding-top: 1.4rem;
+    padding-bottom: 7rem;
 }
 
-#MainMenu {
-    visibility: hidden;
+#MainMenu {visibility:hidden;}
+footer {visibility:hidden;}
+header {background:transparent !important;}
+
+.checki-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
 }
 
-footer {
-    visibility: hidden;
+.logo {
+    font-size:28px;
+    font-weight:900;
+    color:#1683ff;
+    letter-spacing:-1.5px;
 }
 
-.checki-logo {
-    font-size: 32px;
-    font-weight: 900;
-    letter-spacing: -1px;
-    color: #111111;
-    margin-bottom: 0px;
-}
-
-.checki-logo span {
-    color: #ff3b5c;
+.logo-sub {
+    color:#8b97a7;
+    font-size:12px;
+    margin-top:2px;
 }
 
 .hero {
-    padding: 34px 28px;
-    border-radius: 28px;
-    background: linear-gradient(135deg, #ff3b5c 0%, #ff6b7f 100%);
-    color: white;
-    margin: 18px 0 24px 0;
-    box-shadow: 0 12px 30px rgba(255, 59, 92, 0.18);
+    background:
+        linear-gradient(135deg,#eff7ff 0%,#ffffff 55%,#f3f0ff 100%);
+    border:1px solid #e4edf8;
+    padding:30px 25px;
+    border-radius:27px;
+    margin:15px 0 20px 0;
+    box-shadow:0 12px 35px rgba(31,105,190,.07);
 }
 
-.hero-small {
-    font-size: 14px;
-    font-weight: 700;
-    opacity: 0.9;
-    margin-bottom: 10px;
+.hero-tag {
+    display:inline-block;
+    background:#e4f1ff;
+    color:#1683ff;
+    font-size:12px;
+    font-weight:800;
+    padding:7px 11px;
+    border-radius:30px;
+    margin-bottom:13px;
 }
 
 .hero-title {
-    font-size: 31px;
-    font-weight: 900;
-    line-height: 1.25;
-    letter-spacing: -1.2px;
+    color:#0d2c5a;
+    font-size:29px;
+    line-height:1.3;
+    font-weight:900;
+    letter-spacing:-1.3px;
 }
 
-.hero-text {
-    margin-top: 12px;
-    font-size: 15px;
-    line-height: 1.6;
-    opacity: 0.94;
+.hero-desc {
+    color:#69798d;
+    font-size:14px;
+    line-height:1.7;
+    margin-top:12px;
 }
 
 .section-title {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: -0.6px;
-    margin-top: 28px;
-    margin-bottom: 13px;
+    color:#102d57;
+    font-size:21px;
+    font-weight:900;
+    letter-spacing:-.7px;
+    margin:26px 0 13px 0;
 }
 
-.card {
-    background: rgba(255,255,255,0.92);
-    padding: 21px;
-    border-radius: 20px;
-    border: 1px solid #f0e9eb;
-    margin-bottom: 12px;
-    box-shadow: 0 6px 20px rgba(30,20,20,0.04);
+.subtext {
+    color:#78879a;
+    font-size:14px;
+    line-height:1.6;
+    margin-bottom:18px;
 }
 
-.card-icon {
-    font-size: 25px;
-    margin-bottom: 8px;
+.white-card {
+    background:white;
+    border:1px solid #e8eef6;
+    border-radius:22px;
+    padding:20px;
+    margin:11px 0;
+    box-shadow:0 7px 25px rgba(30,78,130,.05);
+}
+
+.blue-card {
+    background:linear-gradient(135deg,#edf7ff,#f7fbff);
+    border:1px solid #dcecff;
+    border-radius:22px;
+    padding:20px;
+    margin:11px 0;
+}
+
+.red-card {
+    background:linear-gradient(135deg,#fff1f1,#fff8f8);
+    border:1px solid #ffdcdc;
+    border-radius:22px;
+    padding:20px;
+    margin:11px 0;
+}
+
+.purple-card {
+    background:linear-gradient(135deg,#f6f1ff,#fbf9ff);
+    border:1px solid #ebe0ff;
+    border-radius:22px;
+    padding:20px;
+    margin:11px 0;
+}
+
+.green-card {
+    background:linear-gradient(135deg,#effcf6,#f8fffb);
+    border:1px solid #d8f3e5;
+    border-radius:22px;
+    padding:20px;
+    margin:11px 0;
 }
 
 .card-title {
-    font-size: 17px;
-    font-weight: 850;
-    color: #171717;
-    margin-bottom: 5px;
+    font-size:17px;
+    font-weight:900;
+    color:#17355e;
+    margin-bottom:7px;
 }
 
-.card-text {
-    color: #6d6668;
-    font-size: 14px;
-    line-height: 1.55;
+.card-desc {
+    font-size:14px;
+    color:#718096;
+    line-height:1.6;
+}
+
+.red-title {
+    color:#e54b4b;
+    font-size:17px;
+    font-weight:900;
+}
+
+.big-score {
+    font-size:39px;
+    font-weight:900;
+    color:#e84e4e;
+}
+
+.tag-red {
+    display:inline-block;
+    background:#ffe1e1;
+    color:#e64d4d;
+    font-size:12px;
+    font-weight:800;
+    padding:5px 10px;
+    border-radius:20px;
+    margin:5px 4px 0 0;
+}
+
+.tag-blue {
+    display:inline-block;
+    background:#e5f2ff;
+    color:#1683ff;
+    font-size:12px;
+    font-weight:800;
+    padding:5px 10px;
+    border-radius:20px;
+    margin:5px 4px 0 0;
 }
 
 .stat {
-    background: white;
-    border: 1px solid #f0e9eb;
-    border-radius: 18px;
-    padding: 18px 10px;
-    text-align: center;
+    background:white;
+    border:1px solid #e7eef7;
+    border-radius:20px;
+    padding:18px 8px;
+    text-align:center;
+    min-height:100px;
+    box-shadow:0 6px 20px rgba(30,78,130,.04);
 }
 
-.stat-number {
-    font-size: 24px;
-    font-weight: 900;
-    color: #ff3b5c;
+.stat-num {
+    color:#1683ff;
+    font-size:23px;
+    font-weight:900;
 }
 
-.stat-label {
-    font-size: 12px;
-    color: #81797b;
-    margin-top: 3px;
+.stat-name {
+    color:#8794a5;
+    font-size:12px;
+    margin-top:5px;
 }
 
-.stop-card {
-    background: #fff4f5;
-    border: 1px solid #ffd7dd;
-    border-radius: 22px;
-    padding: 23px;
-    margin: 15px 0;
+.progress-bg {
+    height:9px;
+    background:#e8f1fb;
+    border-radius:20px;
+    overflow:hidden;
+    margin-top:10px;
+}
+
+.progress-blue {
+    height:100%;
+    background:#2188ff;
+    border-radius:20px;
+}
+
+.purchase-title {
+    font-size:25px;
+    font-weight:900;
+    color:#102d57;
+    line-height:1.35;
+    text-align:center;
+    margin:20px 0 5px 0;
+}
+
+.purchase-sub {
+    text-align:center;
+    color:#7b899b;
+    font-size:14px;
+    margin-bottom:20px;
 }
 
 .timer {
-    text-align: center;
-    font-size: 42px;
-    font-weight: 900;
-    color: #ff3b5c;
-    padding: 18px;
-}
-
-.safe-box {
-    background: #f4fbf7;
-    border: 1px solid #d7efe0;
-    border-radius: 18px;
-    padding: 18px;
-    margin: 10px 0;
-}
-
-.notice {
-    background: #fff8e8;
-    padding: 16px 18px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.55;
-    margin: 15px 0;
+    font-size:43px;
+    color:#1683ff;
+    font-weight:900;
+    text-align:center;
+    padding:16px 0;
 }
 
 div.stButton > button {
-    border-radius: 14px;
-    min-height: 48px;
-    font-weight: 800;
+    width:100%;
+    min-height:49px;
+    border-radius:14px;
+    font-weight:800;
+    border:1px solid #dce7f5;
 }
 
 div.stButton > button[kind="primary"] {
-    background: #ff3b5c;
-    border-color: #ff3b5c;
+    background:#1683ff;
+    border-color:#1683ff;
+    color:white;
 }
 
 div[data-testid="stFileUploader"] {
-    background: white;
-    border-radius: 20px;
-    padding: 10px;
+    background:white;
+    border:1px solid #e5edf7;
+    border-radius:20px;
+    padding:10px;
+}
+
+div[data-testid="stRadio"] > div {
+    background:white;
+    padding:5px;
+    border-radius:17px;
+    border:1px solid #e5edf7;
+}
+
+hr {
+    border-color:#edf1f6;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# =========================================================
-# 세션 데이터
-# =========================================================
-
-if "page" not in st.session_state:
-    st.session_state.page = "홈"
-
-if "analysis_count" not in st.session_state:
-    st.session_state.analysis_count = 0
-
-if "stop_count" not in st.session_state:
-    st.session_state.stop_count = 0
-
-if "saved_money" not in st.session_state:
-    st.session_state.saved_money = 0
-
-if "hold_until" not in st.session_state:
-    st.session_state.hold_until = None
-
-if "hold_product" not in st.session_state:
-    st.session_state.hold_product = ""
-
-if "hold_price" not in st.session_state:
-    st.session_state.hold_price = 0
-
-if "purchase_reason" not in st.session_state:
-    st.session_state.purchase_reason = ""
 
 # =========================================================
-# 공통 헤더
+# SESSION
 # =========================================================
 
-st.markdown(
-    '<div class="checki-logo">CHECK<span>I</span></div>',
-    unsafe_allow_html=True
-)
+defaults = {
+    "analysis_count": 0,
+    "stopped_count": 0,
+    "saved_money": 0,
+    "hold_until": None,
+    "hold_product": "",
+    "hold_price": 0,
+    "hold_reason": "",
+    "last_result": None,
+    "last_image": None
+}
 
-st.caption("충동적인 소비 전에, 체키하세요.")
+for key, value in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 
 # =========================================================
-# 네비게이션
+# HEADER
 # =========================================================
 
-pages = ["🏠 홈", "🔎 AI 분석", "⏸️ 결제 멈추기", "📊 리포트"]
+st.markdown("""
+<div class="checki-header">
+    <div>
+        <div class="logo">체키</div>
+        <div class="logo-sub">CHECK BEFORE YOU BUY</div>
+    </div>
+    <div style="font-size:23px;">✓</div>
+</div>
+""", unsafe_allow_html=True)
 
-selected = st.radio(
+
+# =========================================================
+# NAVIGATION
+# =========================================================
+
+menu = st.radio(
     "메뉴",
-    pages,
+    ["🏠 홈", "✓ 구매체크", "📊 소비분석", "👤 MY"],
     horizontal=True,
     label_visibility="collapsed"
 )
 
-page = selected.split(" ", 1)[1]
+page = menu.split(" ", 1)[1]
+
 
 # =========================================================
-# 홈
+# HOME
 # =========================================================
 
 if page == "홈":
 
     st.markdown("""
     <div class="hero">
-        <div class="hero-small">AI CONSUMER GUARD</div>
+
+        <div class="hero-tag">
+            AI 소비 방어 도우미
+        </div>
 
         <div class="hero-title">
-            결제 버튼을 누르기 전,<br>
-            한 번 더 CHECK.
+            구매 전,<br>
+            한 번 더 체키해 보세요.
         </div>
 
-        <div class="hero-text">
-            쇼핑 화면 속 소비 유도 요소를 AI가 찾아내고,
-            충동적인 결제라면 잠시 멈춰 생각할 시간을 만들어드려요.
+        <div class="hero-desc">
+            쇼핑 화면 속 구매 유도 요소를 확인하고,
+            내 소비상황과 비교해 지금 필요한 소비인지
+            한 번 더 생각할 수 있도록 도와드려요.
         </div>
+
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(
-        '<div class="section-title">오늘의 CHECKI</div>',
+        '<div class="section-title">이번 달 나의 체키</div>',
         unsafe_allow_html=True
     )
 
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.markdown(
-            f"""
-            <div class="stat">
-                <div class="stat-number">{st.session_state.analysis_count}</div>
-                <div class="stat-label">AI 분석</div>
+        st.markdown(f"""
+        <div class="stat">
+            <div class="stat-num">
+                {st.session_state.analysis_count}
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            <div class="stat-name">
+                구매 체크
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c2:
-        st.markdown(
-            f"""
-            <div class="stat">
-                <div class="stat-number">{st.session_state.stop_count}</div>
-                <div class="stat-label">구매 포기</div>
+        st.markdown(f"""
+        <div class="stat">
+            <div class="stat-num">
+                {st.session_state.stopped_count}
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            <div class="stat-name">
+                구매 포기
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c3:
-        st.markdown(
-            f"""
-            <div class="stat">
-                <div class="stat-number">{st.session_state.saved_money:,}</div>
-                <div class="stat-label">방어 금액(원)</div>
+        st.markdown(f"""
+        <div class="stat">
+            <div class="stat-num">
+                {st.session_state.saved_money:,}
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            <div class="stat-name">
+                방어 금액(원)
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown(
-        '<div class="section-title">체키가 도와드려요</div>',
+        '<div class="section-title">체키는 이렇게 도와드려요</div>',
         unsafe_allow_html=True
     )
 
     st.markdown("""
-    <div class="card">
-        <div class="card-icon">🔎</div>
-        <div class="card-title">AI 쇼핑 화면 분석</div>
-        <div class="card-text">
-            쇼핑 화면을 올리면 시간 압박, 희소성 강조,
-            사회적 압박, 사전 선택 등 소비 유도 요소를 분석해요.
+    <div class="white-card">
+        <div class="card-title">🔎 구매 유도 요소 확인</div>
+        <div class="card-desc">
+            타이머, 재고 부족 강조, 과도한 할인 표시 등
+            구매를 서두르게 만드는 화면 요소를 AI가 확인해요.
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-icon">⏸️</div>
-        <div class="card-title">결제 멈추기</div>
-        <div class="card-text">
-            사고 싶은 마음이 강할수록 바로 결제하지 말고
-            체키에 잠시 보관해보세요.
+    <div class="blue-card">
+        <div class="card-title">📊 내 소비상황과 비교</div>
+        <div class="card-desc">
+            이번 달 예산과 최근 구매내역을 함께 살펴보고
+            지금 구매가 내 소비상황에 적절한지 확인해요.
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-icon">📊</div>
-        <div class="card-title">소비 방어 리포트</div>
-        <div class="card-text">
-            얼마나 분석했고, 몇 번의 구매를 다시 생각했는지
-            한눈에 확인할 수 있어요.
+    <div class="purple-card">
+        <div class="card-title">⏸ 잠시 보류하기</div>
+        <div class="card-desc">
+            바로 결제하지 않고 30분 또는 24시간 동안
+            구매를 보류해 충동적인 결제를 줄여요.
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+
 # =========================================================
-# AI 분석
+# PURCHASE CHECK
 # =========================================================
 
-elif page == "AI 분석":
+elif page == "구매체크":
 
     st.markdown(
-        '<div class="section-title">🔎 쇼핑 화면 AI 분석</div>',
+        '<div class="section-title">구매 전, 체키해 보세요</div>',
         unsafe_allow_html=True
     )
 
-    st.write(
-        "결제하기 전 마음에 걸리는 쇼핑 화면을 캡처해서 올려주세요."
-    )
+    st.markdown("""
+    <div class="subtext">
+        구매하려는 쇼핑 화면을 캡처해서 올려주세요.<br>
+        체키가 구매 유도 요소를 먼저 확인해드려요.
+    </div>
+    """, unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader(
-        "쇼핑 화면 업로드",
+        "구매 화면 업로드",
         type=["png", "jpg", "jpeg"]
     )
 
-    if uploaded_file is not None:
+    price_input = st.number_input(
+        "상품 가격 (선택)",
+        min_value=0,
+        step=1000,
+        format="%d",
+        help="입력하면 구매 보류·소비 방어 기능과 연결할 수 있어요."
+    )
+
+    product_input = st.text_input(
+        "상품명 (선택)",
+        placeholder="예: Balance 러닝화"
+    )
+
+    if uploaded_file:
 
         image = Image.open(uploaded_file)
 
         st.image(
             image,
-            caption="분석할 쇼핑 화면",
+            caption="구매하려는 화면",
             use_container_width=True
         )
 
         if st.button(
-            "🔎 체키로 분석하기",
+            "✓ 체키에게 확인받기",
             type="primary",
             use_container_width=True
         ):
@@ -385,80 +510,99 @@ elif page == "AI 분석":
                 )
 
                 prompt = """
-너는 AI 소비자 보호 서비스 '체키(CHECKI)'의 분석 AI다.
+너는 AI 소비자 보호 서비스 '체키'다.
 
-사용자가 업로드한 온라인 쇼핑 화면을 분석하여
-충동구매나 원하지 않는 소비를 유도할 수 있는 요소를 찾아라.
+사용자가 온라인 쇼핑 결제 전에 올린 화면을 분석한다.
 
-중점적으로 확인할 요소:
+목적은 사용자를 겁주거나 구매를 무조건 막는 것이 아니라,
+구매 결정을 서두르게 만드는 요소를 찾아
+소비자가 한 번 더 생각할 수 있도록 돕는 것이다.
 
-- 반복적이거나 과도한 시간 제한
-- 재고 부족 및 품절 임박 강조
-- 다른 소비자의 조회·구매 행동을 이용한 압박
-- 할인율 및 가격의 과도한 강조
-- 추가 상품 또는 옵션의 사전 선택
-- 구독 및 자동결제 정보의 불명확한 표시
-- 구매 또는 동의 버튼의 과도한 시각적 강조
-- 소비자의 판단을 재촉하는 문구
-- 취소나 거절을 어렵게 만드는 화면 구성
+다음을 확인하라.
 
-화면에서 실제로 확인되는 내용만 분석한다.
-확인되지 않은 내용을 추측하지 않는다.
-정상적인 할인이나 마케팅을 무조건 다크패턴으로 판단하지 않는다.
+1. 긴급성
+- 오늘만 할인
+- 카운트다운
+- 곧 종료 등의 표현
 
-반드시 아래 형식으로 한국어로 답변한다.
+2. 희소성
+- 재고 부족
+- 몇 개 남음
+- 품절 임박
 
-## 🚦 위험도
+3. 사회적 압박
+- 몇 명이 보고 있음
+- 최근 몇 개 판매
+- 인기 상품 등의 표현
 
-낮음 🟢 / 주의 🟡 / 높음 🔴 중 하나와
-0~100점 사이의 소비 유도 위험 점수를 표시한다.
+4. 가격 강조
+- 과도한 할인율
+- 기준가격을 이용한 가격 착시 가능성
 
-예시:
-**높음 🔴 · 87점 / 100점**
+5. 사전 선택
+- 사용자가 선택하지 않은 추가 상품이나 옵션이
+  미리 선택되어 있는지
 
-## 💬 체키 한줄 진단
+6. 기타
+- 자동결제
+- 구독
+- 취소 방해
+- 구매 버튼 과도한 강조 등
 
-가장 중요한 내용을 소비자가 바로 이해할 수 있도록
-한 문장으로 설명한다.
+화면에 실제로 보이는 내용만 근거로 판단한다.
+확실하지 않은 것은 단정하지 않는다.
 
-## ⚠️ 탐지된 소비 유도 요소
+반드시 다음 형식으로 답변한다.
 
-발견된 요소마다 아래 세 항목을 작성한다.
-
-**유형:** 소비 유도 방식
-**화면 근거:** 실제 화면에서 확인되는 내용
-**영향:** 소비자 판단에 미칠 수 있는 영향
-
-## 🛡️ 결제 전 CHECK!
-
-결제 전에 다시 확인하면 좋은 행동을
-최대 3개 제시한다.
-
-뚜렷한 문제가 없다면
-'뚜렷한 다크패턴이 확인되지 않습니다.'라고 알려라.
+RISK: 낮음 / 주의 / 높음
+SCORE: 0~100 사이 숫자
+SUMMARY: 한 문장
+TYPES: 발견 유형을 쉼표로 구분
+EVIDENCE: 화면에서 가장 중요한 실제 근거 1~3개를 짧게 설명
+ACTION: 결제 전 확인할 내용 한 문장
 """
 
-                response = None
+                result = None
                 last_error = None
+
+                progress = st.progress(10)
+                status = st.empty()
+
+                steps = [
+                    "구매 화면 분석 중",
+                    "구매 유도 요소 확인 중",
+                    "가격 정보 확인 중",
+                    "내 소비내역 확인 중"
+                ]
 
                 for attempt in range(3):
 
                     try:
 
-                        if attempt == 0:
-                            message = "체키가 화면을 분석하고 있어요..."
-                        else:
-                            message = (
-                                f"AI 서버가 혼잡해 자동으로 다시 분석하고 있어요... "
-                                f"({attempt + 1}/3)"
-                            )
+                        status.info("✓ " + steps[0])
+                        progress.progress(25)
 
-                        with st.spinner(message):
+                        time.sleep(0.4)
 
-                            response = client.models.generate_content(
-                                model="gemini-3.8-flash",
-                                contents=[prompt, image]
-                            )
+                        status.info("✓ " + steps[1])
+                        progress.progress(50)
+
+                        response = client.models.generate_content(
+                            model="gemini-3.8-flash",
+                            contents=[prompt, image]
+                        )
+
+                        status.info("✓ " + steps[2])
+                        progress.progress(75)
+
+                        time.sleep(0.3)
+
+                        status.info("✓ " + steps[3])
+                        progress.progress(95)
+
+                        result = response.text
+
+                        progress.progress(100)
 
                         break
 
@@ -469,41 +613,224 @@ elif page == "AI 분석":
                         if "503" in str(e) or "UNAVAILABLE" in str(e):
 
                             if attempt < 2:
+                                status.warning(
+                                    "AI 요청이 많아 자동으로 다시 확인하고 있어요."
+                                )
                                 time.sleep(2 * (attempt + 1))
 
                             continue
 
                         raise e
 
-                if response is not None:
+                if result:
+
+                    time.sleep(0.3)
+
+                    progress.empty()
+                    status.empty()
 
                     st.session_state.analysis_count += 1
+                    st.session_state.last_result = result
+                    st.session_state.last_image = image
 
-                    st.success("체키 분석이 완료되었습니다! ✅")
+                    risk_match = re.search(
+                        r"RISK:\s*(.+)",
+                        result
+                    )
 
-                    st.markdown(response.text)
+                    score_match = re.search(
+                        r"SCORE:\s*(\d+)",
+                        result
+                    )
+
+                    summary_match = re.search(
+                        r"SUMMARY:\s*(.+)",
+                        result
+                    )
+
+                    types_match = re.search(
+                        r"TYPES:\s*(.+)",
+                        result
+                    )
+
+                    evidence_match = re.search(
+                        r"EVIDENCE:\s*(.+)",
+                        result
+                    )
+
+                    action_match = re.search(
+                        r"ACTION:\s*(.+)",
+                        result
+                    )
+
+                    risk = (
+                        risk_match.group(1).strip()
+                        if risk_match else "주의"
+                    )
+
+                    score = (
+                        int(score_match.group(1))
+                        if score_match else 60
+                    )
+
+                    summary = (
+                        summary_match.group(1).strip()
+                        if summary_match
+                        else "구매 전 한 번 더 확인해보세요."
+                    )
+
+                    types = (
+                        types_match.group(1).strip()
+                        if types_match else "구매 유도"
+                    )
+
+                    evidence = (
+                        evidence_match.group(1).strip()
+                        if evidence_match else result
+                    )
+
+                    action = (
+                        action_match.group(1).strip()
+                        if action_match
+                        else "결제 전 다시 확인해보세요."
+                    )
 
                     st.markdown("""
-                    <div class="stop-card">
-                        <b>🛑 지금 바로 결제하려고 하셨나요?</b><br><br>
-                        분석 결과가 마음에 걸린다면,
-                        바로 구매하지 않고 잠시 생각할 시간을 가져보세요.
+                    <div class="purchase-title">
+                        체키가 확인했어요!
+                    </div>
+
+                    <div class="purchase-sub">
+                        구매 전에 아래 내용을 한 번 확인해 보세요.
                     </div>
                     """, unsafe_allow_html=True)
 
-                    st.caption(
-                        "※ 체키 분석은 AI 기반 참고 정보이며 "
-                        "법률상 다크패턴 여부를 확정하는 판단은 아닙니다."
+                    st.markdown(f"""
+                    <div class="red-card">
+
+                        <div class="red-title">
+                            ⚠️ 구매 유도 요소가 발견됐어요
+                        </div>
+
+                        <div style="
+                            margin-top:10px;
+                            color:#37475b;
+                            font-weight:700;
+                        ">
+                            {summary}
+                        </div>
+
+                        <div style="margin-top:13px;">
+                            <span class="tag-red">
+                                {types}
+                            </span>
+                        </div>
+
+                        <div class="card-desc"
+                             style="margin-top:13px;">
+                            {evidence}
+                        </div>
+
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # ---------------------------------
+                    # 가격 비교: MVP 샘플
+                    # ---------------------------------
+
+                    st.markdown("""
+                    <div class="blue-card">
+
+                        <div class="card-title">
+                            📊 가격을 확인했어요
+                        </div>
+
+                        <div class="card-desc">
+                            현재 MVP에서는 실제 가격 추적 데이터 대신
+                            샘플 비교 정보를 사용하고 있어요.<br><br>
+
+                            최근 가격과 비교했을 때
+                            <b>큰 가격 차이는 없는 상품</b>으로
+                            가정하여 보여드리고 있어요.
+                        </div>
+
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # ---------------------------------
+                    # 소비상황: MVP 샘플
+                    # ---------------------------------
+
+                    st.markdown("""
+                    <div class="purple-card">
+
+                        <div class="card-title">
+                            💳 나의 소비상황과 비교했어요
+                        </div>
+
+                        <div class="card-desc">
+                            이번 달 의류 예산
+                            <b>300,000원 중 246,000원</b>을 사용했어요.
+                            <br><br>
+
+                            현재 예산의
+                            <b>82%</b>를 사용한 상태예요.
+                            <br><br>
+
+                            14일 전에도 비슷한 카테고리의
+                            상품을 구매한 기록이 있어요.
+                        </div>
+
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    st.markdown(f"""
+                    <div class="white-card">
+
+                        <div class="card-title">
+                            ✓ 결제 전 마지막 CHECK
+                        </div>
+
+                        <div class="card-desc">
+                            {action}
+                        </div>
+
+                        <div style="
+                            margin-top:14px;
+                            font-size:13px;
+                            color:#9aa4b1;
+                        ">
+                            소비 유도 위험 점수
+                        </div>
+
+                        <div class="big-score">
+                            {score}
+                            <span style="
+                                font-size:15px;
+                                color:#8794a5;
+                            ">
+                                / 100
+                            </span>
+                        </div>
+
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    st.session_state.temp_product = (
+                        product_input or "구매 예정 상품"
                     )
+
+                    st.session_state.temp_price = int(price_input)
 
                 else:
 
                     st.error(
-                        "현재 AI 요청이 많이 몰리고 있어요. "
+                        "현재 AI 분석 요청이 많아요. "
                         "잠시 후 다시 시도해주세요."
                     )
 
                     if last_error:
+
                         with st.expander("오류 정보"):
                             st.caption(str(last_error))
 
@@ -514,154 +841,26 @@ elif page == "AI 분석":
                 with st.expander("오류 정보"):
                     st.caption(str(e))
 
-# =========================================================
-# 결제 멈추기
-# =========================================================
+    # =====================================================
+    # 이전 분석 결과가 있으면 구매 선택 표시
+    # =====================================================
 
-elif page == "결제 멈추기":
+    if st.session_state.last_result:
 
-    st.markdown(
-        '<div class="section-title">⏸️ 결제 멈추기</div>',
-        unsafe_allow_html=True
-    )
-
-    st.write(
-        "사고 싶은 상품을 바로 결제하지 말고 "
-        "체키에 잠시 맡겨보세요."
-    )
-
-    if st.session_state.hold_until is None:
-
-        product = st.text_input(
-            "사고 싶은 상품",
-            placeholder="예: 운동화"
+        st.markdown(
+            '<div class="section-title">이제 어떻게 할까요?</div>',
+            unsafe_allow_html=True
         )
 
-        price = st.number_input(
-            "가격",
-            min_value=0,
-            step=1000,
-            format="%d"
-        )
-
-        reason = st.text_area(
-            "왜 지금 사고 싶나요?",
-            placeholder="예: 오늘까지만 50% 할인이라서"
-        )
-
-        st.markdown("""
-        <div class="notice">
-            💡 <b>체키 질문</b><br>
-            할인하지 않았어도 이 상품을 지금 구매했을까요?
-        </div>
-        """, unsafe_allow_html=True)
-
-        c1, c2 = st.columns(2)
-
-        with c1:
-
-            if st.button(
-                "⏱️ 30분 멈추기",
-                use_container_width=True
-            ):
-
-                if not product:
-                    st.warning("상품 이름을 입력해주세요.")
-
-                else:
-
-                    st.session_state.hold_product = product
-                    st.session_state.hold_price = int(price)
-                    st.session_state.purchase_reason = reason
-
-                    st.session_state.hold_until = (
-                        datetime.now() + timedelta(minutes=30)
-                    )
-
-                    st.rerun()
-
-        with c2:
-
-            if st.button(
-                "🌙 24시간 고민하기",
-                type="primary",
-                use_container_width=True
-            ):
-
-                if not product:
-                    st.warning("상품 이름을 입력해주세요.")
-
-                else:
-
-                    st.session_state.hold_product = product
-                    st.session_state.hold_price = int(price)
-                    st.session_state.purchase_reason = reason
-
-                    st.session_state.hold_until = (
-                        datetime.now() + timedelta(hours=24)
-                    )
-
-                    st.rerun()
-
-    else:
-
-        remaining = (
-            st.session_state.hold_until - datetime.now()
-        )
-
-        seconds = max(0, int(remaining.total_seconds()))
-
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        secs = seconds % 60
-
-        st.markdown(f"""
-        <div class="stop-card">
-            <div class="card-title">
-                🔒 {st.session_state.hold_product}
-            </div>
-
-            <div class="card-text">
-                {st.session_state.hold_price:,}원
-            </div>
-
-            <div class="timer">
-                {hours:02d}:{minutes:02d}:{secs:02d}
-            </div>
-
-            <div class="card-text" style="text-align:center;">
-                구매 보류 중
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.session_state.purchase_reason:
+        if st.button(
+            "구매 계속하기",
+            type="primary",
+            use_container_width=True
+        ):
 
             st.info(
-                "처음 사고 싶었던 이유: "
-                + st.session_state.purchase_reason
-            )
-
-        st.markdown("""
-        <div class="notice">
-            🤔 <b>다시 생각해볼까요?</b><br><br>
-            • 이 상품이 오늘 꼭 필요한가요?<br>
-            • 할인하지 않았어도 구매했을까요?<br>
-            • 비슷한 물건을 이미 가지고 있지는 않나요?
-        </div>
-        """, unsafe_allow_html=True)
-
-        if seconds > 0:
-
-            st.caption(
-                "💡 화면을 새로고침하면 남은 시간이 갱신됩니다."
-            )
-
-        else:
-
-            st.success(
-                "고민 시간이 끝났어요. "
-                "이제 다시 구매 여부를 결정해보세요."
+                "구매를 계속하기로 했어요. "
+                "체키가 확인한 내용을 참고해 신중하게 결정해주세요."
             )
 
         c1, c2 = st.columns(2)
@@ -669,54 +868,229 @@ elif page == "결제 멈추기":
         with c1:
 
             if st.button(
-                "🙅 구매하지 않을래요",
-                type="primary",
+                "⏸ 잠시 보류하기",
                 use_container_width=True
             ):
 
-                st.session_state.stop_count += 1
-                st.session_state.saved_money += (
-                    st.session_state.hold_price
+                st.session_state.hold_product = (
+                    st.session_state.get(
+                        "temp_product",
+                        "구매 예정 상품"
+                    )
                 )
 
-                st.session_state.hold_until = None
-                st.session_state.hold_product = ""
-                st.session_state.hold_price = 0
-                st.session_state.purchase_reason = ""
+                st.session_state.hold_price = (
+                    st.session_state.get(
+                        "temp_price",
+                        0
+                    )
+                )
+
+                st.session_state.hold_until = (
+                    datetime.now()
+                    + timedelta(minutes=30)
+                )
 
                 st.success(
-                    "좋아요! 이번 소비는 다시 생각해보기로 했어요."
+                    "30분 동안 구매를 보류했어요. "
+                    "MY 메뉴에서 확인할 수 있어요."
                 )
-
-                st.rerun()
 
         with c2:
 
             if st.button(
-                "구매할래요",
+                "구매하지 않기",
                 use_container_width=True
             ):
 
-                st.session_state.hold_until = None
-                st.session_state.hold_product = ""
-                st.session_state.hold_price = 0
-                st.session_state.purchase_reason = ""
+                price = st.session_state.get(
+                    "temp_price",
+                    0
+                )
 
-                st.rerun()
+                st.session_state.stopped_count += 1
+                st.session_state.saved_money += price
+
+                if price > 0:
+
+                    st.success(
+                        f"🎉 {price:,}원의 소비를 "
+                        f"다시 생각하는 데 성공했어요!"
+                    )
+
+                else:
+
+                    st.success(
+                        "🎉 이번 구매를 다시 생각하기로 했어요!"
+                    )
+
+                st.session_state.last_result = None
+
 
 # =========================================================
-# 리포트
+# SPENDING ANALYSIS
 # =========================================================
 
-elif page == "리포트":
+elif page == "소비분석":
 
     st.markdown(
-        '<div class="section-title">📊 나의 소비 방어 리포트</div>',
+        '<div class="section-title">소비분석</div>',
         unsafe_allow_html=True
     )
 
-    st.write(
-        "체키와 함께 한 소비 판단을 확인해보세요."
+    st.caption(
+        "※ 현재 경진대회 MVP에서는 아래 소비내역을 "
+        "샘플 데이터로 제공합니다."
+    )
+
+    period = st.radio(
+        "기간",
+        ["이번 달", "최근 3개월", "전체"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+    st.markdown("""
+    <div class="hero">
+
+        <div class="hero-tag">
+            이번 달 소비 리포트
+        </div>
+
+        <div class="hero-title">
+            이번 달<br>
+            내 소비상황을 확인해 볼까요?
+        </div>
+
+        <div class="hero-desc">
+            예산과 지출을 비교하고
+            반복되는 소비 패턴을 확인해보세요.
+        </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="white-card">
+
+        <div class="card-title">
+            👕 의류
+            <span style="float:right;">
+                82%
+            </span>
+        </div>
+
+        <div class="card-desc">
+            246,000원 / 300,000원
+        </div>
+
+        <div class="progress-bg">
+            <div class="progress-blue"
+                 style="width:82%;">
+            </div>
+        </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="section-title">카테고리별 지출</div>',
+        unsafe_allow_html=True
+    )
+
+    categories = [
+        ("👕 의류", 246000, 82),
+        ("🍴 식비", 180000, 60),
+        ("🧴 뷰티", 72000, 36),
+        ("🛒 생활용품", 45000, 30)
+    ]
+
+    for name, amount, percent in categories:
+
+        st.markdown(f"""
+        <div class="white-card">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                font-weight:800;
+                color:#24405f;
+            ">
+                <span>{name}</span>
+                <span>{amount:,}원</span>
+            </div>
+
+            <div class="progress-bg">
+                <div class="progress-blue"
+                     style="width:{percent}%;">
+                </div>
+            </div>
+
+            <div style="
+                text-align:right;
+                color:#7f8ea1;
+                font-size:12px;
+                margin-top:5px;
+            ">
+                {percent}%
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="section-title">최근 구매</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown("""
+    <div class="white-card">
+        <b>👟 운동화</b>
+        <span style="float:right;font-weight:800;">
+            79,000원
+        </span>
+        <div class="card-desc">14일 전</div>
+    </div>
+
+    <div class="white-card">
+        <b>👔 셔츠</b>
+        <span style="float:right;font-weight:800;">
+            59,000원
+        </span>
+        <div class="card-desc">1개월 전</div>
+    </div>
+
+    <div class="white-card">
+        <b>🧢 모자</b>
+        <span style="float:right;font-weight:800;">
+            45,000원
+        </span>
+        <div class="card-desc">1개월 전</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="purple-card">
+        <div class="card-title">
+            💡 체키 인사이트
+        </div>
+        <div class="card-desc">
+            최근 비슷한 카테고리의 상품을 구매했어요.<br>
+            이번 달 의류 예산도 이미 82% 사용했어요.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# =========================================================
+# MY
+# =========================================================
+
+elif page == "MY":
+
+    st.markdown(
+        '<div class="section-title">MY 체키</div>',
+        unsafe_allow_html=True
     )
 
     c1, c2 = st.columns(2)
@@ -724,49 +1098,172 @@ elif page == "리포트":
     with c1:
 
         st.metric(
-            "🔎 AI 분석 횟수",
+            "구매 체크",
             f"{st.session_state.analysis_count}회"
         )
 
     with c2:
 
         st.metric(
-            "🙅 구매 포기",
-            f"{st.session_state.stop_count}회"
+            "구매 포기",
+            f"{st.session_state.stopped_count}회"
         )
 
     st.metric(
-        "💰 방어한 소비 금액",
+        "방어한 소비",
         f"{st.session_state.saved_money:,}원"
     )
 
-    if st.session_state.stop_count > 0:
+    # 구매 보류 중
+    if st.session_state.hold_until:
+
+        remaining = (
+            st.session_state.hold_until
+            - datetime.now()
+        )
+
+        seconds = max(
+            0,
+            int(remaining.total_seconds())
+        )
+
+        h = seconds // 3600
+        m = (seconds % 3600) // 60
+        s = seconds % 60
+
+        st.markdown(
+            '<div class="section-title">구매 보류 중</div>',
+            unsafe_allow_html=True
+        )
 
         st.markdown(f"""
-        <div class="safe-box">
-            <b>🛡️ CHECKI가 만든 변화</b><br><br>
-            지금까지 {st.session_state.stop_count}번의 구매를
-            다시 생각했고,
-            총 <b>{st.session_state.saved_money:,}원</b>의
-            소비를 멈췄어요.
+        <div class="blue-card">
+
+            <div class="card-title">
+                🔒 {st.session_state.hold_product}
+            </div>
+
+            <div class="card-desc">
+                {st.session_state.hold_price:,}원
+            </div>
+
+            <div class="timer">
+                {h:02d}:{m:02d}:{s:02d}
+            </div>
+
+            <div class="card-desc"
+                 style="text-align:center;">
+                남은 고민 시간
+            </div>
+
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.caption(
+            "화면을 새로고침하면 남은 시간이 갱신됩니다."
+        )
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            if st.button(
+                "구매하지 않기",
+                type="primary",
+                use_container_width=True
+            ):
+
+                st.session_state.stopped_count += 1
+
+                st.session_state.saved_money += (
+                    st.session_state.hold_price
+                )
+
+                st.session_state.hold_until = None
+
+                st.success(
+                    "이번 구매를 다시 생각하는 데 성공했어요!"
+                )
+
+                st.rerun()
+
+        with c2:
+
+            if st.button(
+                "보류 종료",
+                use_container_width=True
+            ):
+
+                st.session_state.hold_until = None
+
+                st.rerun()
+
+    else:
+
+        st.markdown("""
+        <div class="blue-card">
+            <div class="card-title">
+                ⏸ 현재 보류 중인 구매가 없어요
+            </div>
+
+            <div class="card-desc">
+                구매체크 후 고민되는 상품이 있다면
+                '잠시 보류하기'를 사용해보세요.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="section-title">체키 기록</div>',
+        unsafe_allow_html=True
+    )
+
+    if st.session_state.stopped_count > 0:
+
+        st.markdown(f"""
+        <div class="green-card">
+
+            <div class="card-title">
+                🎉 잘하고 있어요!
+            </div>
+
+            <div class="card-desc">
+                지금까지
+                <b>{st.session_state.stopped_count}번</b>의 구매를
+                다시 생각했고,
+                총 <b>{st.session_state.saved_money:,}원</b>의
+                소비를 방어했어요.
+            </div>
+
         </div>
         """, unsafe_allow_html=True)
 
     else:
 
         st.markdown("""
-        <div class="safe-box">
-            아직 기록이 없어요.<br>
-            쇼핑 중 고민되는 순간 체키를 사용해보세요.
+        <div class="white-card">
+            <div class="card-desc">
+                아직 구매 포기 기록이 없어요.<br>
+                첫 번째 구매체크를 시작해보세요.
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
+
 # =========================================================
-# 하단
+# FOOTER
 # =========================================================
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-st.caption(
-    "CHECKI · AI 기반 소비자 보호 서비스 MVP"
-)
+st.markdown("""
+<div style="
+    text-align:center;
+    color:#a2adba;
+    font-size:11px;
+    line-height:1.7;
+">
+    CHECKI · AI 소비자 보호 서비스 MVP<br>
+    AI 분석은 소비 판단을 돕기 위한 참고 정보입니다.
+</div>
+""", unsafe_allow_html=True)
