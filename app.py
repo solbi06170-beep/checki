@@ -1,6 +1,7 @@
 import streamlit as st
 from google import genai
 from PIL import Image
+import time
 
 st.set_page_config(
     page_title="체키 | CHECKI",
@@ -41,13 +42,11 @@ if uploaded_file is not None:
     ):
 
         try:
-            with st.spinner("체키가 쇼핑 화면을 분석하고 있어요..."):
+            client = genai.Client(
+                api_key=st.secrets["GEMINI_API_KEY"]
+            )
 
-                client = genai.Client(
-                    api_key=st.secrets["GEMINI_API_KEY"]
-                )
-
-                prompt = """
+            prompt = """
 너는 온라인 소비자의 합리적인 소비를 돕는
 AI 소비자 보호 서비스 '체키(CHECKI)'의 분석 AI다.
 
@@ -104,25 +103,71 @@ AI 소비자 보호 서비스 '체키(CHECKI)'의 분석 AI다.
 위험 점수 역시 낮게 평가하라.
 """
 
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=[prompt, image]
+            response = None
+            last_error = None
+
+            # 최대 3번 자동 재시도
+            for attempt in range(3):
+
+                try:
+                    if attempt == 0:
+                        message = "체키가 쇼핑 화면을 분석하고 있어요..."
+                    else:
+                        message = f"서버가 혼잡해 자동 재시도 중이에요... ({attempt + 1}/3)"
+
+                    with st.spinner(message):
+                        response = client.models.generate_content(
+                            model="gemini-3.8-flash",
+                            contents=[prompt, image]
+                        )
+
+                    # 성공하면 반복 종료
+                    break
+
+                except Exception as e:
+                    last_error = e
+
+                    # 503 서버 혼잡 오류인지 확인
+                    if "503" in str(e) or "UNAVAILABLE" in str(e):
+
+                        if attempt < 2:
+                            # 첫 실패 후 2초, 두 번째 실패 후 4초 대기
+                            wait_time = 2 * (attempt + 1)
+                            time.sleep(wait_time)
+
+                        continue
+
+                    # 503이 아닌 다른 오류라면 즉시 표시
+                    raise e
+
+            if response is not None:
+
+                st.success("체키 분석이 완료되었습니다! ✅")
+
+                st.divider()
+
+                st.markdown(response.text)
+
+                st.divider()
+
+                st.caption(
+                    "※ 체키의 분석은 AI 기반 참고 정보이며, "
+                    "법률상 다크패턴 여부를 확정하는 판단은 아닙니다."
                 )
 
-            st.success("체키 분석이 완료되었습니다! ✅")
+            else:
+                st.error(
+                    "현재 AI 분석 요청이 많이 몰리고 있어요. "
+                    "잠시 후 다시 시도해주세요."
+                )
 
-            st.divider()
-
-            st.markdown(response.text)
-
-            st.divider()
-
-            st.caption(
-                "※ 체키의 분석은 AI 기반 참고 정보이며, "
-                "법률상 다크패턴 여부를 확정하는 판단은 아닙니다."
-            )
+                if last_error is not None:
+                    with st.expander("오류 정보"):
+                        st.caption(str(last_error))
 
         except Exception as e:
-            st.error("잠시 분석 요청이 몰리고 있어요.")
-            st.info("잠시 후 🔎 체키로 분석하기 버튼을 다시 눌러주세요.")
-            st.caption(str(e))
+
+            st.error("분석 중 오류가 발생했습니다.")
+
+            with st.expander("오류 정보"):
+                st.caption(str(e))
