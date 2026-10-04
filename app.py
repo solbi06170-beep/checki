@@ -1,11 +1,11 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="체키 | CHECKY",
+    page_title="체키 | CHECKI",
     page_icon="🔍"
 )
 
-st.title("🔍 체키 CHECKY")
+st.title("🔍 체키 CHECKI")
 
 st.write("충동적인 소비 전에, 체키하세요.")
 
