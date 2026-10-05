@@ -1407,7 +1407,7 @@ def read_url(url):
 
 def generate_with_retry(
     contents,
-    retries=5
+    retries=3
 ):
 
     if gemini is None:
@@ -1425,7 +1425,7 @@ def generate_with_retry(
                 gemini
                 .models
                 .generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.5-flash",
                     contents=contents
                 )
             )
@@ -1435,7 +1435,11 @@ def generate_with_retry(
                     "Empty Gemini response"
                 )
 
-            if not getattr(response, "text", None):
+            if not getattr(
+                response,
+                "text",
+                None
+            ):
                 raise Exception(
                     "Empty Gemini response text"
                 )
@@ -1445,19 +1449,35 @@ def generate_with_retry(
         except Exception as e:
 
             last_error = e
+            msg = str(e).lower()
 
-            if i < retries - 1:
+            retryable = (
+                "503" in msg
+                or "unavailable" in msg
+                or "high demand" in msg
+                or "429" in msg
+                or "resource exhausted" in msg
+                or "500" in msg
+                or "internal" in msg
+                or "timeout" in msg
+                or "timed out" in msg
+                or "temporarily" in msg
+            )
 
-                wait_seconds = 2 * (i + 1)
+            if (
+                retryable
+                and i < retries - 1
+            ):
 
-                time.sleep(
-                    wait_seconds
-                )
+                # 1차 실패 → 1초 대기
+                # 2차 실패 → 2초 대기
+                time.sleep(i + 1)
 
                 continue
 
-            raise last_error
+            raise
 
+    raise last_error
 
 # =========================================================
 # 10. PARSING
