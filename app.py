@@ -124,17 +124,9 @@ st.markdown(
     """
 <style>
 
-/* =====================================================
-   FONT
-   ===================================================== */
-
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap');
 
-
-/* =====================================================
-   COLOR
-   ===================================================== */
 
 :root {
     --blue: #1689F8;
@@ -178,7 +170,7 @@ footer {
 
 
 /* =====================================================
-   전체 폰트 통일
+   전체 폰트
    ===================================================== */
 
 html,
@@ -221,7 +213,6 @@ h6 {
     margin: 0 !important;
     padding: 0 !important;
     overflow-x: hidden !important;
-
     color: var(--navy);
 
     background:
@@ -249,7 +240,7 @@ h6 {
 
 
 /* =====================================================
-   STREAMLIT MARKDOWN 제목
+   제목
    ===================================================== */
 
 .stMarkdown h1,
@@ -284,10 +275,8 @@ h6 {
     align-items: center;
     justify-content: center;
     gap: 9px;
-
     font-size: 32px;
     line-height: 1;
-
     letter-spacing: -0.055em;
 }
 
@@ -298,31 +287,24 @@ h6 {
         sans-serif !important;
 
     color: var(--blue);
-
     font-weight: 900 !important;
-
     letter-spacing: -0.065em;
 }
 
 .checki-divider {
     color: #BDD0DE;
-
     font-weight: 800 !important;
-
     font-size: 25px;
 }
 
 .checki-brand-ko {
     color: var(--navy);
-
     font-weight: 900 !important;
-
     letter-spacing: -0.08em;
 }
 
 .checki-tagline {
     margin-top: 7px;
-
     color: #91A3B1;
 
     font-family:
@@ -331,9 +313,7 @@ h6 {
         sans-serif !important;
 
     font-size: 8px;
-
     font-weight: 800 !important;
-
     letter-spacing: 0.22em;
 }
 
@@ -359,15 +339,11 @@ div[role="radiogroup"] {
     max-width: 100% !important;
 
     margin: 0 auto !important;
-
     gap: 2px;
-
     padding: 4px 7px;
 
     background: rgba(255,255,255,0.94);
-
     border: 1px solid #E1ECF5;
-
     border-radius: 999px;
 
     box-shadow:
@@ -377,15 +353,10 @@ div[role="radiogroup"] {
 
 div[role="radiogroup"] label {
     flex: none !important;
-
     padding: 3px 6px !important;
-
     font-size: 13px !important;
-
     font-weight: 700 !important;
-
     letter-spacing: -0.035em !important;
-
     color: #40586B !important;
 }
 
@@ -396,39 +367,28 @@ div[role="radiogroup"] label {
 
 .hero {
     text-align: center;
-
-    padding:
-        34px 8px
-        8px 8px;
+    padding: 34px 8px 8px 8px;
 }
 
 .hero-title {
     color: var(--navy);
-
     font-size: 31px;
     line-height: 1.3;
-
     font-weight: 900 !important;
-
     letter-spacing: -0.065em;
 }
 
 .hero-blue {
     color: var(--blue);
-
     font-weight: 900 !important;
 }
 
 .hero-desc {
     margin-top: 9px;
-
     color: #788D9E;
-
     font-size: 14px;
     line-height: 1.65;
-
     font-weight: 600 !important;
-
     letter-spacing: -0.035em;
 }
 
@@ -439,17 +399,12 @@ div[role="radiogroup"] label {
 
 .mascot-stage {
     width: 100%;
-
     display: flex;
     justify-content: center;
     align-items: center;
 
-    margin:
-        3px auto
-        13px auto;
-
+    margin: 3px auto 13px auto;
     padding: 0;
-
     text-align: center;
 }
 
@@ -462,14 +417,12 @@ div[role="radiogroup"] label {
     align-items: center;
 
     overflow: hidden;
-
     margin: 0 auto;
     padding: 0;
 }
 
 .checki-mascot {
     display: block;
-
     width: 100%;
     height: 100%;
 
@@ -478,9 +431,7 @@ div[role="radiogroup"] label {
 
     margin: 0 auto;
     padding: 0;
-
     border: 0;
-
     background: transparent;
 
     filter:
@@ -516,16 +467,10 @@ div[role="radiogroup"] label {
    ===================================================== */
 
 .checki-card {
-    background:
-        rgba(255,255,255,0.95);
-
-    border:
-        1px solid var(--border);
-
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--border);
     border-radius: 20px;
-
     padding: 20px;
-
     margin: 12px 0;
 
     box-shadow:
@@ -535,40 +480,30 @@ div[role="radiogroup"] label {
 
 .card-title {
     color: #19364D;
-
     font-size: 17px;
-
     font-weight: 850 !important;
-
     letter-spacing: -0.045em;
-
     margin-bottom: 6px;
 }
 
 .card-desc {
     color: #71899C;
-
     font-size: 13px;
-
     line-height: 1.6;
-
     font-weight: 600 !important;
-
     letter-spacing: -0.03em;
 }
 
 
 /* =====================================================
-   FORM / LABEL
+   FORM
    ===================================================== */
 
 label,
 [data-testid="stWidgetLabel"],
 [data-testid="stWidgetLabel"] p {
     font-weight: 750 !important;
-
     letter-spacing: -0.035em !important;
-
     color: #294154 !important;
 }
 
@@ -581,18 +516,11 @@ label,
 .stNumberInput input,
 .stTextArea textarea {
     border-radius: 13px !important;
-
     border-color: #DFE9F1 !important;
-
-    background:
-        rgba(247,249,251,0.94) !important;
-
+    background: rgba(247,249,251,0.94) !important;
     font-size: 14px !important;
-
     font-weight: 600 !important;
-
     min-height: 44px !important;
-
     color: #253D50 !important;
 }
 
@@ -604,14 +532,9 @@ label,
 
 [data-baseweb="select"] > div {
     border-radius: 13px !important;
-
     border-color: #DFE9F1 !important;
-
-    background:
-        rgba(247,249,251,0.94) !important;
-
+    background: rgba(247,249,251,0.94) !important;
     min-height: 44px !important;
-
     font-weight: 650 !important;
 }
 
@@ -623,7 +546,7 @@ label,
 
 /* =====================================================
    FILE UPLOADER
-   중요: Streamlit 기본 구조를 건드리지 않는다.
+   핵심 수정 부분
    ===================================================== */
 
 [data-testid="stFileUploader"] {
@@ -632,35 +555,32 @@ label,
 
 [data-testid="stFileUploaderDropzone"] {
     background: #F7F9FB !important;
-
-    border:
-        1px dashed #CBDCE9 !important;
-
+    border: 1px dashed #CBDCE9 !important;
     border-radius: 16px !important;
-
     min-height: 90px !important;
-
     padding: 14px 18px !important;
 }
 
 
 /*
-   Streamlit 업로드 버튼은 내부에 접근성용 텍스트가
-   별도로 존재할 수 있다.
+   1. Streamlit 기본 Browse files / upload 텍스트를
+      모두 화면에서 숨김
+   2. 버튼 자체는 유지
+   3. 버튼의 ::after에 "업로드" 하나만 표시
 
-   따라서 button *, span, p 등에 display:inline을
-   강제로 적용하지 않는다.
-
-   가짜 텍스트를 만드는 ::before / ::after도 사용하지 않는다.
+   이렇게 해야 uploadUpload 중복이 발생하지 않음.
 */
 
 [data-testid="stFileUploaderDropzone"] button {
+    position: relative !important;
+
     min-width: 104px !important;
+    width: 104px !important;
 
     height: 40px !important;
     min-height: 40px !important;
 
-    padding: 0 15px !important;
+    padding: 0 !important;
 
     border-radius: 11px !important;
 
@@ -673,24 +593,81 @@ label,
         0 3px 10px
         rgba(37,91,130,0.04) !important;
 
+    overflow: hidden !important;
+
+    font-size: 0 !important;
+    line-height: 0 !important;
+
+    color: transparent !important;
+}
+
+
+/*
+   버튼 내부에 Streamlit이 만드는 모든 글자/아이콘을
+   화면에서 숨긴다.
+*/
+
+[data-testid="stFileUploaderDropzone"] button > * {
+    visibility: hidden !important;
+    opacity: 0 !important;
+
+    font-size: 0 !important;
+
+    width: 0 !important;
+    height: 0 !important;
+
+    overflow: hidden !important;
+}
+
+
+/*
+   실제 사용자에게 보이는 글자는 이것 하나뿐.
+*/
+
+[data-testid="stFileUploaderDropzone"] button::after {
+    content: "업로드" !important;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+
+    position: absolute !important;
+
+    top: 50% !important;
+    left: 50% !important;
+
+    transform:
+        translate(-50%, -50%) !important;
+
+    width: 100% !important;
+
     color: #294154 !important;
 
     font-family:
         "Pretendard Variable",
         "Pretendard",
+        -apple-system,
+        BlinkMacSystemFont,
         sans-serif !important;
 
     font-size: 13px !important;
 
+    line-height: 1 !important;
+
     font-weight: 750 !important;
 
     letter-spacing: -0.03em !important;
+
+    text-align: center !important;
+
+    white-space: nowrap !important;
+
+    pointer-events: none !important;
 }
 
 
 /*
-   안내 문구는 색상/크기만 조정.
-   내부 표시 구조는 건드리지 않는다.
+   파일 업로드 영역 안내 문구.
+   여기서는 display/visibility 구조를 건드리지 않음.
 */
 
 [data-testid="stFileUploaderDropzoneInstructions"] {
@@ -699,17 +676,13 @@ label,
 
 [data-testid="stFileUploaderDropzoneInstructions"] span {
     color: #758B9C !important;
-
     font-size: 12px !important;
-
     font-weight: 650 !important;
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] small {
     color: #9AABB8 !important;
-
     font-size: 10px !important;
-
     font-weight: 550 !important;
 }
 
@@ -720,20 +693,15 @@ label,
 
 .preview-stage {
     width: 100%;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
 
-    margin:
-        13px auto
-        17px auto;
+    margin: 13px auto 17px auto;
 }
 
 .uploaded-preview {
     display: block;
-
     width: auto;
     height: auto;
 
@@ -741,13 +709,10 @@ label,
     max-height: 420px;
 
     object-fit: contain;
-
     margin: 0 auto;
 
     border-radius: 16px;
-
-    border:
-        1px solid #E4EDF4;
+    border: 1px solid #E4EDF4;
 
     box-shadow:
         0 7px 22px
@@ -761,7 +726,6 @@ label,
 
 .stButton > button {
     min-height: 47px !important;
-
     border-radius: 13px !important;
 
     font-family:
@@ -770,11 +734,8 @@ label,
         sans-serif !important;
 
     font-size: 14px !important;
-
     font-weight: 750 !important;
-
-    letter-spacing:
-        -0.035em !important;
+    letter-spacing: -0.035em !important;
 
     transition:
         all 0.15s ease !important;
@@ -786,8 +747,7 @@ label,
 }
 
 .stButton > button:hover {
-    transform:
-        translateY(-1px);
+    transform: translateY(-1px);
 }
 
 .stButton > button[kind="primary"],
@@ -800,7 +760,6 @@ label,
         ) !important;
 
     color: white !important;
-
     border: none !important;
 
     box-shadow:
@@ -817,46 +776,32 @@ label,
 .result-medium,
 .result-high {
     border-radius: 19px;
-
     padding: 20px;
-
     margin-top: 9px;
-
     line-height: 1.65;
-
     letter-spacing: -0.025em;
-
     font-weight: 550;
 }
 
 .result-low {
     background: #EFFBF5;
-
-    border:
-        1px solid #C8EEDB;
+    border: 1px solid #C8EEDB;
 }
 
 .result-medium {
     background: #FFF9E9;
-
-    border:
-        1px solid #F3DEA1;
+    border: 1px solid #F3DEA1;
 }
 
 .result-high {
     background: #FFF1F1;
-
-    border:
-        1px solid #F2C5C5;
+    border: 1px solid #F2C5C5;
 }
 
 .risk-title {
     color: #18344B;
-
     font-size: 20px;
-
     font-weight: 850 !important;
-
     letter-spacing: -0.05em;
 }
 
@@ -869,20 +814,12 @@ label,
 
 .price-box {
     background: #F1F8FF;
-
-    border:
-        1px solid #D8EAFB;
-
+    border: 1px solid #D8EAFB;
     border-radius: 15px;
-
     padding: 15px 17px;
-
     margin: 12px 0;
-
     color: #526E83;
-
     font-size: 13px;
-
     font-weight: 650;
 }
 
@@ -893,31 +830,21 @@ label,
 
 .section-center {
     text-align: center;
-
-    margin:
-        2px 0
-        12px 0;
+    margin: 2px 0 12px 0;
 }
 
 .section-title {
     color: #19364D;
-
     font-size: 20px;
-
     font-weight: 850 !important;
-
     letter-spacing: -0.055em;
 }
 
 .section-desc {
     color: #7A90A1;
-
     font-size: 13px;
-
     line-height: 1.6;
-
     font-weight: 550;
-
     margin-top: 5px;
 }
 
@@ -927,16 +854,10 @@ label,
    ===================================================== */
 
 [data-testid="stMetric"] {
-    background:
-        rgba(255,255,255,0.97);
-
-    border:
-        1px solid #DDEAF3;
-
+    background: rgba(255,255,255,0.97);
+    border: 1px solid #DDEAF3;
     border-radius: 18px;
-
     padding: 17px 18px !important;
-
     min-height: 114px;
 
     box-shadow:
@@ -947,42 +868,25 @@ label,
 [data-testid="stMetricLabel"],
 [data-testid="stMetricLabel"] *,
 [data-testid="stMetricLabel"] p {
-    font-family:
-        "Pretendard Variable",
-        "Pretendard",
-        sans-serif !important;
-
     color: #526B7E !important;
-
     font-size: 13px !important;
-
     font-weight: 750 !important;
-
     letter-spacing: -0.04em !important;
 }
 
 [data-testid="stMetricValue"],
 [data-testid="stMetricValue"] *,
 [data-testid="stMetricValue"] div {
-    font-family:
-        "Pretendard Variable",
-        "Pretendard",
-        sans-serif !important;
-
     color: #172C3F !important;
-
     font-size: 31px !important;
-
     line-height: 1.15 !important;
-
     font-weight: 850 !important;
-
     letter-spacing: -0.055em !important;
 }
 
 
 /* =====================================================
-   INFO / SUCCESS / WARNING
+   ALERT
    ===================================================== */
 
 [data-testid="stAlert"] {
@@ -1012,204 +916,146 @@ label,
     [data-testid="stStatusWidget"],
     header {
         display: none !important;
-
         visibility: hidden !important;
-
         height: 0 !important;
-
         min-height: 0 !important;
-
         max-height: 0 !important;
-
         margin: 0 !important;
-
         padding: 0 !important;
     }
-
 
     html,
     body,
     .stApp {
         margin: 0 !important;
-
         padding: 0 !important;
-
         overflow-x: hidden !important;
     }
-
 
     [data-testid="stAppViewContainer"],
     [data-testid="stMain"] {
         margin-top: 0 !important;
-
         padding-top: 0 !important;
     }
-
 
     [data-testid="stMainBlockContainer"],
     .block-container {
         margin-top: 0 !important;
-
         padding-top: 0 !important;
-
         padding-left: 0.9rem !important;
-
         padding-right: 0.9rem !important;
     }
 
-
     .checki-header {
-        padding:
-            10px 0
-            5px 0 !important;
+        padding: 10px 0 5px 0 !important;
     }
-
 
     .checki-brand {
         font-size: 28px !important;
-
         gap: 7px !important;
     }
-
 
     .checki-divider {
         font-size: 22px !important;
     }
 
-
     .checki-tagline {
         margin-top: 6px !important;
-
         font-size: 7px !important;
     }
 
-
     div[role="radiogroup"] {
         margin-top: 0 !important;
-
-        padding:
-            3px 5px !important;
+        padding: 3px 5px !important;
     }
-
 
     div[role="radiogroup"] label {
         font-size: 11.5px !important;
-
         font-weight: 700 !important;
-
-        padding:
-            2px 3px !important;
+        padding: 2px 3px !important;
     }
-
 
     .hero {
-        padding:
-            27px 5px
-            7px 5px !important;
+        padding: 27px 5px 7px 5px !important;
     }
-
 
     .hero-title {
         font-size: 25px !important;
     }
 
-
     .hero-desc {
         font-size: 13px !important;
-
         font-weight: 550 !important;
-
         margin-top: 8px !important;
     }
-
 
     .mascot-box {
         width: 125px !important;
         height: 125px !important;
     }
 
-
     .my-wait-mascot .mascot-box {
         width: 100px !important;
         height: 100px !important;
     }
 
-
     .mascot-stage {
         margin-bottom: 9px !important;
     }
 
-
     .checki-card {
         padding: 17px !important;
-
         border-radius: 18px !important;
     }
 
-
     [data-testid="stFileUploaderDropzone"] {
         min-height: 82px !important;
-
         padding: 11px 12px !important;
     }
 
-
     [data-testid="stFileUploaderDropzone"] button {
         min-width: 92px !important;
-
+        width: 92px !important;
         height: 38px !important;
-
         min-height: 38px !important;
-
-        padding: 0 12px !important;
-
-        font-size: 12px !important;
     }
 
+    [data-testid="stFileUploaderDropzone"] button::after {
+        font-size: 12px !important;
+    }
 
     [data-testid="stFileUploaderDropzoneInstructions"] span {
         font-size: 11px !important;
     }
 
-
     [data-testid="stFileUploaderDropzoneInstructions"] small {
         font-size: 9px !important;
     }
 
-
     .uploaded-preview {
         max-width: 245px !important;
-
         max-height: 330px !important;
-
         border-radius: 14px !important;
     }
 
-
     [data-testid="stMetric"] {
         padding: 13px 10px !important;
-
         min-height: 98px !important;
     }
-
 
     [data-testid="stMetricLabel"],
     [data-testid="stMetricLabel"] *,
     [data-testid="stMetricLabel"] p {
         font-size: 11px !important;
-
         font-weight: 750 !important;
     }
-
 
     [data-testid="stMetricValue"],
     [data-testid="stMetricValue"] *,
     [data-testid="stMetricValue"] div {
         font-size: 25px !important;
-
         font-weight: 850 !important;
     }
-
 
     .stMarkdown h3 {
         font-size: 22px !important;
@@ -1290,9 +1136,7 @@ if "user_id" not in st.session_state:
 
         else:
 
-            uid = str(
-                uuid.uuid4()
-            )
+            uid = str(uuid.uuid4())
 
             st.session_state["user_id"] = uid
 
@@ -1323,21 +1167,14 @@ def get_expenses():
             supabase
             .table("checki_expenses")
             .select("*")
-            .eq(
-                "user_id",
-                user_id
-            )
-            .order(
-                "created_at",
-                desc=True
-            )
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
             .execute()
         )
 
         return response.data or []
 
     except Exception:
-
         return []
 
 
@@ -1352,21 +1189,14 @@ def get_records():
             supabase
             .table("checki_records")
             .select("*")
-            .eq(
-                "user_id",
-                user_id
-            )
-            .order(
-                "created_at",
-                desc=True
-            )
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
             .execute()
         )
 
         return response.data or []
 
     except Exception:
-
         return []
 
 
@@ -1382,17 +1212,10 @@ def add_expense(
     try:
 
         data = {
-            "user_id":
-                user_id,
-
-            "category":
-                category,
-
-            "item_name":
-                item_name,
-
-            "amount":
-                int(amount),
+            "user_id": user_id,
+            "category": category,
+            "item_name": item_name,
+            "amount": int(amount),
 
             "purchased_at":
                 now_kst()
@@ -1413,7 +1236,6 @@ def add_expense(
         return True
 
     except Exception:
-
         return False
 
 
@@ -1437,35 +1259,22 @@ def save_analysis_record(
 
         hold_until = (
             hold_started
-            + timedelta(
-                minutes=30
-            )
+            + timedelta(minutes=30)
         )
 
         data = {
-            "user_id":
-                user_id,
-
-            "product_name":
-                product_name,
-
-            "category":
-                category,
+            "user_id": user_id,
+            "product_name": product_name,
+            "category": category,
 
             "product_price":
-                int(
-                    product_price
-                    or 0
-                ),
+                int(product_price or 0),
 
             "risk_level":
                 risk_level,
 
             "risk_score":
-                int(
-                    risk_score
-                    or 0
-                ),
+                int(risk_score or 0),
 
             "one_line_summary":
                 summary,
@@ -1508,7 +1317,6 @@ def save_analysis_record(
         return None
 
     except Exception:
-
         return None
 
 
@@ -1527,15 +1335,9 @@ def update_record(
     try:
 
         data = {
-            "decision":
-                decision,
-
+            "decision": decision,
             "saved_amount":
-                int(
-                    saved_amount
-                    or 0
-                ),
-
+                int(saved_amount or 0),
             "decided_at":
                 iso_now()
         }
@@ -1544,17 +1346,13 @@ def update_record(
             supabase
             .table("checki_records")
             .update(data)
-            .eq(
-                "id",
-                record_id
-            )
+            .eq("id", record_id)
             .execute()
         )
 
         return True
 
     except Exception:
-
         return False
 
 
@@ -1568,16 +1366,9 @@ def read_url(url):
         return None
 
     if not url.startswith(
-        (
-            "http://",
-            "https://"
-        )
+        ("http://", "https://")
     ):
-
-        url = (
-            "https://"
-            + url
-        )
+        url = "https://" + url
 
     headers = {
         "User-Agent":
@@ -1604,25 +1395,16 @@ def read_url(url):
         )
 
         for tag in soup(
-            [
-                "script",
-                "style",
-                "noscript"
-            ]
+            ["script", "style", "noscript"]
         ):
-
             tag.decompose()
 
         title = ""
 
         if soup.title:
-
-            title = (
-                soup.title
-                .get_text(
-                    " ",
-                    strip=True
-                )
+            title = soup.title.get_text(
+                " ",
+                strip=True
             )
 
         text = soup.get_text(
@@ -1644,7 +1426,6 @@ def read_url(url):
         )
 
     except Exception:
-
         return None
 
 
@@ -1658,7 +1439,6 @@ def generate_with_retry(
 ):
 
     if gemini is None:
-
         raise Exception(
             "Gemini client unavailable"
         )
@@ -1673,11 +1453,8 @@ def generate_with_retry(
                 gemini
                 .models
                 .generate_content(
-                    model=
-                        "gemini-2.5-flash",
-
-                    contents=
-                        contents
+                    model="gemini-2.5-flash",
+                    contents=contents
                 )
             )
 
@@ -1691,11 +1468,7 @@ def generate_with_retry(
         except Exception as e:
 
             last_error = e
-
-            msg = (
-                str(e)
-                .lower()
-            )
+            msg = str(e).lower()
 
             retryable = (
                 "503" in msg
@@ -1796,10 +1569,7 @@ def parse_score(value):
 
     return max(
         0,
-        min(
-            score,
-            100
-        )
+        min(score, 100)
     )
 
 
@@ -1873,29 +1643,19 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
         )
 
     if image is not None:
+        contents.append(image)
 
-        contents.append(
-            image
-        )
-
-    response = (
-        generate_with_retry(
-            contents,
-            retries=5
-        )
+    response = generate_with_retry(
+        contents,
+        retries=5
     )
 
-    result = (
-        response.text
-        or ""
-    )
+    result = response.text or ""
 
-    extracted_name = (
-        parse_field(
-            result,
-            "PRODUCT_NAME",
-            product_name
-        )
+    extracted_name = parse_field(
+        result,
+        "PRODUCT_NAME",
+        product_name
     )
 
     price = parse_price(
@@ -1920,67 +1680,43 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
         "MEDIUM",
         "HIGH"
     ]:
-
         risk_level = "MEDIUM"
 
-    risk_score = (
-        parse_score(
-            parse_field(
-                result,
-                "RISK_SCORE",
-                "50"
-            )
+    risk_score = parse_score(
+        parse_field(
+            result,
+            "RISK_SCORE",
+            "50"
         )
     )
 
-    summary = (
-        parse_field(
-            result,
-            "SUMMARY",
-            "구매 전 한 번 더 확인해보세요."
-        )
+    summary = parse_field(
+        result,
+        "SUMMARY",
+        "구매 전 한 번 더 확인해보세요."
     )
 
-    detected = (
-        parse_field(
-            result,
-            "DETECTED",
-            "확인 필요"
-        )
+    detected = parse_field(
+        result,
+        "DETECTED",
+        "확인 필요"
     )
 
-    advice = (
-        parse_field(
-            result,
-            "ADVICE",
-            "구매 필요성과 가격을 다시 확인해보세요."
-        )
+    advice = parse_field(
+        result,
+        "ADVICE",
+        "구매 필요성과 가격을 다시 확인해보세요."
     )
 
     return {
-        "product_name":
-            extracted_name,
-
-        "price":
-            price,
-
-        "risk_level":
-            risk_level,
-
-        "risk_score":
-            risk_score,
-
-        "summary":
-            summary,
-
-        "detected":
-            detected,
-
-        "advice":
-            advice,
-
-        "raw":
-            result
+        "product_name": extracted_name,
+        "price": price,
+        "risk_level": risk_level,
+        "risk_score": risk_score,
+        "summary": summary,
+        "detected": detected,
+        "advice": advice,
+        "raw": result
     }
 
 
@@ -2036,8 +1772,7 @@ page = st.radio(
 
     horizontal=True,
 
-    label_visibility=
-        "collapsed"
+    label_visibility="collapsed"
 )
 
 
@@ -2152,46 +1887,38 @@ elif page == "구매체크":
     )
 
 
-    product_name = (
-        st.text_input(
-            "상품명",
-
-            placeholder=
-                "예: 무선 이어폰"
-        )
+    product_name = st.text_input(
+        "상품명",
+        placeholder="예: 무선 이어폰"
     )
 
 
-    category = (
-        st.selectbox(
-            "카테고리",
+    category = st.selectbox(
+        "카테고리",
 
-            [
-                "패션/의류",
-                "뷰티",
-                "식품",
-                "생활용품",
-                "전자기기",
-                "가구/인테리어",
-                "취미/여가",
-                "구독서비스",
-                "기타"
-            ]
-        )
+        [
+            "패션/의류",
+            "뷰티",
+            "식품",
+            "생활용품",
+            "전자기기",
+            "가구/인테리어",
+            "취미/여가",
+            "구독서비스",
+            "기타"
+        ]
     )
 
 
-    input_type = (
-        st.radio(
-            "분석 방법",
+    input_type = st.radio(
+        "분석 방법",
 
-            [
-                "스크린샷",
-                "상품 링크"
-            ],
+        [
+            "스크린샷",
+            "상품 링크"
+        ],
 
-            horizontal=True
-        )
+        horizontal=True
     )
 
 
@@ -2199,36 +1926,27 @@ elif page == "구매체크":
     product_url = None
 
 
-    if (
-        input_type
-        == "스크린샷"
-    ):
+    if input_type == "스크린샷":
 
-        uploaded_file = (
-            st.file_uploader(
-                "쇼핑 화면을 올려주세요",
+        uploaded_file = st.file_uploader(
+            "쇼핑 화면을 올려주세요",
 
-                type=[
-                    "png",
-                    "jpg",
-                    "jpeg",
-                    "webp"
-                ],
+            type=[
+                "png",
+                "jpg",
+                "jpeg",
+                "webp"
+            ],
 
-                label_visibility=
-                    "visible"
-            )
+            label_visibility="visible"
         )
 
 
         if uploaded_file:
 
-            uploaded_image = (
-                Image.open(
-                    uploaded_file
-                )
+            uploaded_image = Image.open(
+                uploaded_file
             )
-
 
             show_uploaded_preview(
                 uploaded_image
@@ -2237,26 +1955,16 @@ elif page == "구매체크":
 
     else:
 
-        product_url = (
-            st.text_input(
-                "상품 링크",
-
-                placeholder=
-                    "https://..."
-            )
+        product_url = st.text_input(
+            "상품 링크",
+            placeholder="https://..."
         )
 
 
-    analyze_clicked = (
-        st.button(
-            "체키로 분석하기",
-
-            type=
-                "primary",
-
-            use_container_width=
-                True
-        )
+    analyze_clicked = st.button(
+        "체키로 분석하기",
+        type="primary",
+        use_container_width=True
     )
 
 
@@ -2270,8 +1978,7 @@ elif page == "구매체크":
 
 
         elif (
-            input_type
-            == "스크린샷"
+            input_type == "스크린샷"
             and uploaded_image is None
         ):
 
@@ -2281,8 +1988,7 @@ elif page == "구매체크":
 
 
         elif (
-            input_type
-            == "상품 링크"
+            input_type == "상품 링크"
             and not product_url
         ):
 
@@ -2296,19 +2002,14 @@ elif page == "구매체크":
             page_text = None
 
 
-            if (
-                input_type
-                == "상품 링크"
-            ):
+            if input_type == "상품 링크":
 
                 with st.spinner(
                     "상품 페이지를 확인하고 있어요..."
                 ):
 
-                    page_text = (
-                        read_url(
-                            product_url
-                        )
+                    page_text = read_url(
+                        product_url
                     )
 
 
@@ -2331,20 +2032,11 @@ elif page == "구매체크":
                     "일시적인 오류가 생기면 자동으로 다시 시도합니다..."
                 ):
 
-                    result = (
-                        analyze_product(
-                            product_name=
-                                product_name,
-
-                            category=
-                                category,
-
-                            image=
-                                uploaded_image,
-
-                            page_text=
-                                page_text
-                        )
+                    result = analyze_product(
+                        product_name=product_name,
+                        category=category,
+                        image=uploaded_image,
+                        page_text=page_text
                     )
 
 
@@ -2353,46 +2045,30 @@ elif page == "구매체크":
                 ] = result
 
 
-                saved_record = (
-                    save_analysis_record(
-                        product_name=
-                            result[
-                                "product_name"
-                            ],
+                saved_record = save_analysis_record(
+                    product_name=
+                        result["product_name"],
 
-                        category=
-                            category,
+                    category=
+                        category,
 
-                        product_price=
-                            result[
-                                "price"
-                            ],
+                    product_price=
+                        result["price"],
 
-                        risk_level=
-                            result[
-                                "risk_level"
-                            ],
+                    risk_level=
+                        result["risk_level"],
 
-                        risk_score=
-                            result[
-                                "risk_score"
-                            ],
+                    risk_score=
+                        result["risk_score"],
 
-                        summary=
-                            result[
-                                "summary"
-                            ],
+                    summary=
+                        result["summary"],
 
-                        detected=
-                            result[
-                                "detected"
-                            ],
+                    detected=
+                        result["detected"],
 
-                        ai_result=
-                            result[
-                                "raw"
-                            ]
-                    )
+                    ai_result=
+                        result["raw"]
                 )
 
 
@@ -2403,25 +2079,16 @@ elif page == "구매체크":
 
             except Exception as e:
 
-                error_text = (
-                    str(e)
-                    .lower()
-                )
+                error_text = str(e).lower()
 
 
                 if (
                     "503" in error_text
-
                     or "high demand" in error_text
-
                     or "unavailable" in error_text
-
                     or "429" in error_text
-
                     or "resource exhausted" in error_text
-
                     or "500" in error_text
-
                     or "timeout" in error_text
                 ):
 
@@ -2439,16 +2106,11 @@ elif page == "구매체크":
                     )
 
 
-    if (
-        "latest_analysis"
-        in st.session_state
-    ):
+    if "latest_analysis" in st.session_state:
 
-        result = (
-            st.session_state[
-                "latest_analysis"
-            ]
-        )
+        result = st.session_state[
+            "latest_analysis"
+        ]
 
 
         show_mascot(
@@ -2458,68 +2120,39 @@ elif page == "구매체크":
         )
 
 
-        level = (
-            result[
-                "risk_level"
-            ]
-        )
+        level = result[
+            "risk_level"
+        ]
 
 
         if level == "LOW":
 
-            css_class = (
-                "result-low"
-            )
-
-            risk_text = (
-                "낮음 🟢"
-            )
+            css_class = "result-low"
+            risk_text = "낮음 🟢"
 
 
         elif level == "HIGH":
 
-            css_class = (
-                "result-high"
-            )
-
-            risk_text = (
-                "높음 🔴"
-            )
+            css_class = "result-high"
+            risk_text = "높음 🔴"
 
 
         else:
 
-            css_class = (
-                "result-medium"
-            )
-
-            risk_text = (
-                "주의 🟡"
-            )
+            css_class = "result-medium"
+            risk_text = "주의 🟡"
 
 
         safe_summary = html.escape(
-            str(
-                result[
-                    "summary"
-                ]
-            )
+            str(result["summary"])
         )
 
         safe_detected = html.escape(
-            str(
-                result[
-                    "detected"
-                ]
-            )
+            str(result["detected"])
         )
 
         safe_advice = html.escape(
-            str(
-                result[
-                    "advice"
-                ]
-            )
+            str(result["advice"])
         )
 
 
@@ -2560,12 +2193,7 @@ elif page == "구매체크":
         )
 
 
-        if (
-            result[
-                "price"
-            ]
-            > 0
-        ):
+        if result["price"] > 0:
 
             price_html = (
                 '<div class="price-box">'
@@ -2629,11 +2257,8 @@ elif page == "구매체크":
         )
 
 
-        record = (
-            st.session_state
-            .get(
-                "latest_record"
-            )
+        record = st.session_state.get(
+            "latest_record"
         )
 
 
@@ -2682,13 +2307,8 @@ elif page == "소비분석":
     )
 
 
-    expenses = (
-        get_expenses()
-    )
-
-    records = (
-        get_records()
-    )
+    expenses = get_expenses()
+    records = get_records()
 
 
     total_spent = sum(
@@ -2699,8 +2319,7 @@ elif page == "소비분석":
             )
             or 0
         )
-        for x
-        in expenses
+        for x in expenses
     )
 
 
@@ -2712,30 +2331,21 @@ elif page == "소비분석":
             )
             or 0
         )
-        for x
-        in records
+        for x in records
     )
 
 
     avoided = len(
         [
             x
-            for x
-            in records
-
-            if (
-                x.get(
-                    "decision"
-                )
-                == "NOT_BUY"
-            )
+            for x in records
+            if x.get("decision")
+            == "NOT_BUY"
         ]
     )
 
 
-    c1, c2, c3 = (
-        st.columns(3)
-    )
+    c1, c2, c3 = st.columns(3)
 
 
     with c1:
@@ -2776,9 +2386,7 @@ elif page == "소비분석":
 
     else:
 
-        for expense in (
-            expenses[:10]
-        ):
+        for expense in expenses[:10]:
 
             amount = int(
                 expense.get(
@@ -2872,9 +2480,7 @@ elif page == "MY":
     )
 
 
-    records = (
-        get_records()
-    )
+    records = get_records()
 
 
     if not records:
@@ -2890,11 +2496,9 @@ elif page == "MY":
             records[:20]
         ):
 
-            product_raw = (
-                record.get(
-                    "product_name",
-                    "상품"
-                )
+            product_raw = record.get(
+                "product_name",
+                "상품"
             )
 
             product = html.escape(
@@ -2902,11 +2506,9 @@ elif page == "MY":
             )
 
 
-            category_raw = (
-                record.get(
-                    "category",
-                    "기타"
-                )
+            category_raw = record.get(
+                "category",
+                "기타"
             )
 
             category = html.escape(
@@ -2923,11 +2525,9 @@ elif page == "MY":
             )
 
 
-            decision = (
-                record.get(
-                    "decision",
-                    "HOLD"
-                )
+            decision = record.get(
+                "decision",
+                "HOLD"
             )
 
 
@@ -2941,10 +2541,8 @@ elif page == "MY":
             )
 
 
-            record_id = (
-                record.get(
-                    "id"
-                )
+            record_id = record.get(
+                "id"
             )
 
 
@@ -2996,10 +2594,8 @@ elif page == "MY":
 
             if decision == "HOLD":
 
-                hold_until_text = (
-                    record.get(
-                        "hold_until"
-                    )
+                hold_until_text = record.get(
+                    "hold_until"
                 )
 
 
@@ -3023,10 +2619,7 @@ elif page == "MY":
                         )
 
 
-                        if (
-                            hold_until.tzinfo
-                            is None
-                        ):
+                        if hold_until.tzinfo is None:
 
                             hold_until = (
                                 hold_until
@@ -3040,9 +2633,7 @@ elif page == "MY":
                             now_kst()
                             >=
                             hold_until
-                            .astimezone(
-                                KST
-                            )
+                            .astimezone(KST)
                         )
 
 
@@ -3063,9 +2654,7 @@ elif page == "MY":
 
                     remaining = (
                         hold_until
-                        .astimezone(
-                            KST
-                        )
+                        .astimezone(KST)
                         -
                         now_kst()
                     )
@@ -3107,9 +2696,7 @@ elif page == "MY":
                     )
 
 
-                    col1, col2 = (
-                        st.columns(2)
-                    )
+                    col1, col2 = st.columns(2)
 
 
                     with col1:
@@ -3120,8 +2707,7 @@ elif page == "MY":
                             key=
                                 f"no_{record_id}_{index}",
 
-                            use_container_width=
-                                True
+                            use_container_width=True
                         ):
 
                             saved = (
@@ -3152,18 +2738,14 @@ elif page == "MY":
                             key=
                                 f"yes_{record_id}_{index}",
 
-                            type=
-                                "primary",
+                            type="primary",
 
-                            use_container_width=
-                                True
+                            use_container_width=True
                         ):
 
                             st.session_state[
                                 "buy_record"
-                            ] = (
-                                record_id
-                            )
+                            ] = record_id
 
 
                 if (
@@ -3173,25 +2755,21 @@ elif page == "MY":
                     == record_id
                 ):
 
-                    actual_amount = (
-                        st.number_input(
-                            "실제로 결제한 금액",
+                    actual_amount = st.number_input(
+                        "실제로 결제한 금액",
 
-                            min_value=
-                                0,
+                        min_value=0,
 
-                            step=
-                                1000,
+                        step=1000,
 
-                            value=(
-                                price
-                                if price > 0
-                                else 0
-                            ),
+                        value=(
+                            price
+                            if price > 0
+                            else 0
+                        ),
 
-                            key=
-                                f"amount_{record_id}"
-                        )
+                        key=
+                            f"amount_{record_id}"
                     )
 
 
@@ -3201,28 +2779,22 @@ elif page == "MY":
                         key=
                             f"save_buy_{record_id}",
 
-                        type=
-                            "primary",
+                        type="primary",
 
-                        use_container_width=
-                            True
+                        use_container_width=True
                     ):
 
-                        expense_ok = (
-                            add_expense(
-                                category_raw,
-                                product_raw,
-                                actual_amount
-                            )
+                        expense_ok = add_expense(
+                            category_raw,
+                            product_raw,
+                            actual_amount
                         )
 
 
-                        record_ok = (
-                            update_record(
-                                record_id,
-                                "BUY",
-                                0
-                            )
+                        record_ok = update_record(
+                            record_id,
+                            "BUY",
+                            0
                         )
 
 
@@ -3253,10 +2825,7 @@ elif page == "MY":
                             )
 
 
-            elif (
-                decision
-                == "NOT_BUY"
-            ):
+            elif decision == "NOT_BUY":
 
                 saved = int(
                     record.get(
@@ -3282,10 +2851,7 @@ elif page == "MY":
                     )
 
 
-            elif (
-                decision
-                == "BUY"
-            ):
+            elif decision == "BUY":
 
                 st.info(
                     "구매 완료"
