@@ -623,7 +623,7 @@ label,
 
 /* =====================================================
    FILE UPLOADER
-   수정: Streamlit 기본 글자와 가짜 글자가 겹치지 않도록 함
+   중요: Streamlit 기본 구조를 건드리지 않는다.
    ===================================================== */
 
 [data-testid="stFileUploader"] {
@@ -644,8 +644,15 @@ label,
 }
 
 
-/* 기본 버튼을 그대로 사용한다.
-   ::before / ::after로 새 글자를 만들지 않는다. */
+/*
+   Streamlit 업로드 버튼은 내부에 접근성용 텍스트가
+   별도로 존재할 수 있다.
+
+   따라서 button *, span, p 등에 display:inline을
+   강제로 적용하지 않는다.
+
+   가짜 텍스트를 만드는 ::before / ::after도 사용하지 않는다.
+*/
 
 [data-testid="stFileUploaderDropzone"] button {
     min-width: 104px !important;
@@ -677,39 +684,14 @@ label,
 
     font-weight: 750 !important;
 
-    line-height: 1 !important;
-
     letter-spacing: -0.03em !important;
 }
 
 
-/* 버튼 내부 텍스트 정상 표시 */
-
-[data-testid="stFileUploaderDropzone"] button *,
-[data-testid="stFileUploaderDropzone"] button span,
-[data-testid="stFileUploaderDropzone"] button p {
-    display: inline !important;
-
-    visibility: visible !important;
-
-    color: #294154 !important;
-
-    font-size: 13px !important;
-
-    font-weight: 750 !important;
-
-    line-height: 1 !important;
-}
-
-
-/* 업로드 아이콘만 제거 */
-
-[data-testid="stFileUploaderDropzone"] svg {
-    display: none !important;
-}
-
-
-/* 안내 문구 */
+/*
+   안내 문구는 색상/크기만 조정.
+   내부 표시 구조는 건드리지 않는다.
+*/
 
 [data-testid="stFileUploaderDropzoneInstructions"] {
     color: #758B9C !important;
@@ -1181,13 +1163,6 @@ label,
 
         padding: 0 12px !important;
 
-        font-size: 12px !important;
-    }
-
-
-    [data-testid="stFileUploaderDropzone"] button *,
-    [data-testid="stFileUploaderDropzone"] button span,
-    [data-testid="stFileUploaderDropzone"] button p {
         font-size: 12px !important;
     }
 
