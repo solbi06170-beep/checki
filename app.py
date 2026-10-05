@@ -623,7 +623,7 @@ label,
 
 /* =====================================================
    FILE UPLOADER
-   수정: 업로드 후 사진 선택 버튼 중복 방지
+   수정: Streamlit 기본 글자와 가짜 글자가 겹치지 않도록 함
    ===================================================== */
 
 [data-testid="stFileUploader"] {
@@ -644,30 +644,16 @@ label,
 }
 
 
-/*
-중요:
-Dropzone 바로 아래에 있는 Browse 버튼만 선택한다.
-업로드된 파일 행의 버튼에는 적용하지 않는다.
-*/
+/* 기본 버튼을 그대로 사용한다.
+   ::before / ::after로 새 글자를 만들지 않는다. */
 
-[data-testid="stFileUploaderDropzone"] > button {
-    position: relative !important;
-
-    display: flex !important;
-
-    align-items: center !important;
-    justify-content: center !important;
-
-    width: 104px !important;
+[data-testid="stFileUploaderDropzone"] button {
     min-width: 104px !important;
 
     height: 40px !important;
     min-height: 40px !important;
 
-    padding: 0 !important;
-    margin: 0 !important;
-
-    overflow: hidden !important;
+    padding: 0 15px !important;
 
     border-radius: 11px !important;
 
@@ -679,47 +665,6 @@ Dropzone 바로 아래에 있는 Browse 버튼만 선택한다.
     box-shadow:
         0 3px 10px
         rgba(37,91,130,0.04) !important;
-
-    color: transparent !important;
-
-    font-size: 0 !important;
-
-    line-height: 0 !important;
-}
-
-
-/*
-실제 Browse 버튼 내부 기본 글자만 숨김
-*/
-
-[data-testid="stFileUploaderDropzone"] > button > * {
-    display: none !important;
-
-    visibility: hidden !important;
-}
-
-
-/*
-실제 Browse 버튼에만 '사진 선택' 표시
-*/
-
-[data-testid="stFileUploaderDropzone"] > button::before {
-    content: "사진 선택" !important;
-
-    display: block !important;
-
-    visibility: visible !important;
-
-    position: absolute !important;
-
-    left: 50% !important;
-    top: 50% !important;
-
-    transform:
-        translate(-50%, -50%) !important;
-
-    width: max-content !important;
-    height: auto !important;
 
     color: #294154 !important;
 
@@ -735,23 +680,36 @@ Dropzone 바로 아래에 있는 Browse 버튼만 선택한다.
     line-height: 1 !important;
 
     letter-spacing: -0.03em !important;
-
-    white-space: nowrap !important;
 }
 
 
-/*
-드롭존 기본 업로드 아이콘만 제거
-*/
+/* 버튼 내부 텍스트 정상 표시 */
 
-[data-testid="stFileUploaderDropzone"] > svg {
+[data-testid="stFileUploaderDropzone"] button *,
+[data-testid="stFileUploaderDropzone"] button span,
+[data-testid="stFileUploaderDropzone"] button p {
+    display: inline !important;
+
+    visibility: visible !important;
+
+    color: #294154 !important;
+
+    font-size: 13px !important;
+
+    font-weight: 750 !important;
+
+    line-height: 1 !important;
+}
+
+
+/* 업로드 아이콘만 제거 */
+
+[data-testid="stFileUploaderDropzone"] svg {
     display: none !important;
 }
 
 
-/*
-안내 문구
-*/
+/* 안내 문구 */
 
 [data-testid="stFileUploaderDropzoneInstructions"] {
     color: #758B9C !important;
@@ -1055,7 +1013,6 @@ Dropzone 바로 아래에 있는 Browse 버튼만 선택한다.
     letter-spacing: -0.03em !important;
 }
 
-
 [data-testid="stNumberInput"] input {
     font-weight: 650 !important;
 }
@@ -1215,18 +1172,22 @@ Dropzone 바로 아래에 있는 Browse 버튼만 선택한다.
     }
 
 
-    [data-testid="stFileUploaderDropzone"] > button {
-        width: 92px !important;
-
+    [data-testid="stFileUploaderDropzone"] button {
         min-width: 92px !important;
 
         height: 38px !important;
 
         min-height: 38px !important;
+
+        padding: 0 12px !important;
+
+        font-size: 12px !important;
     }
 
 
-    [data-testid="stFileUploaderDropzone"] > button::before {
+    [data-testid="stFileUploaderDropzone"] button *,
+    [data-testid="stFileUploaderDropzone"] button span,
+    [data-testid="stFileUploaderDropzone"] button p {
         font-size: 12px !important;
     }
 
@@ -1779,7 +1740,6 @@ def generate_with_retry(
                 and i < retries - 1
             ):
 
-                # 2초 → 4초 → 6초 → 8초
                 wait_seconds = 2 * (i + 1)
 
                 time.sleep(
