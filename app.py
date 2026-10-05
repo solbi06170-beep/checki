@@ -1,72 +1,260 @@
 import streamlit as st
 from google import genai
 from PIL import Image
-from supabase import create_client
 from datetime import datetime, timedelta, timezone
-import requests
-from bs4 import BeautifulSoup
-import re
+from supabase import create_client
+import uuid
 import time
-import os
+import re
 
 
-# =========================================================
-# 1. 기본 설정
-# =========================================================
+# ============================================================
+# PAGE
+# ============================================================
 
 st.set_page_config(
     page_title="체키 | CHECKI",
-    page_icon="✓",
-    layout="centered",
+    page_icon="🔵",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-KST = timezone(timedelta(hours=9))
 
-MASCOT_FILE = "file_00000000447c81fa8ff9b20ee6b2c9ef.png"
+# ============================================================
+# SUPABASE
+# ============================================================
 
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-
-
-def now_kst():
-    return datetime.now(KST)
-
-
-def iso_now():
-    return now_kst().isoformat()
+@st.cache_resource
+def get_supabase():
+    return create_client(
+        st.secrets["SUPABASE_URL"],
+        st.secrets["SUPABASE_KEY"]
+    )
 
 
-# =========================================================
-# 2. 디자인
-# =========================================================
+supabase = get_supabase()
 
-st.markdown(
-    """
+
+# ============================================================
+# 사용자 구분
+#
+# 처음 접속하면 사용자 ID 생성
+# URL ?uid=... 에 저장
+# 새로고침해도 같은 사용자로 유지
+# ============================================================
+
+def get_user_id():
+
+    try:
+        uid = st.query_params.get("uid")
+    except:
+        uid = None
+
+    if not uid:
+        uid = str(uuid.uuid4())
+        st.query_params["uid"] = uid
+
+    return str(uid)
+
+
+USER_ID = get_user_id()
+
+
+# ============================================================
+# SESSION STATE
+# ============================================================
+
+DEFAULTS = {
+    "result": None,
+    "result_product": "",
+    "result_price": 0,
+    "analysis_saved": False,
+}
+
+for key, value in DEFAULTS.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
+
+# ============================================================
+# DATABASE HELPERS
+# ============================================================
+
+def db_select(table, filters=None):
+
+    try:
+        query = supabase.table(table).select("*")
+
+        if filters:
+            for key, value in filters.items():
+                query = query.eq(key, value)
+
+        response = query.execute()
+
+        return response.data or []
+
+    except Exception:
+        return []
+
+
+def db_insert(table, data):
+
+    try:
+        return (
+            supabase
+            .table(table)
+            .insert(data)
+            .execute()
+        )
+
+    except Exception as e:
+        st.error("데이터 저장 중 문제가 발생했어요.")
+        with st.expander("오류 정보"):
+            st.caption(str(e))
+        return None
+
+
+def db_update(table, data, filters):
+
+    try:
+        query = supabase.table(table).update(data)
+
+        for key, value in filters.items():
+            query = query.eq(key, value)
+
+        return query.execute()
+
+    except Exception as e:
+        st.error("데이터 수정 중 문제가 발생했어요.")
+        with st.expander("오류 정보"):
+            st.caption(str(e))
+        return None
+
+
+def db_delete(table, filters):
+
+    try:
+        query = supabase.table(table).delete()
+
+        for key, value in filters.items():
+            query = query.eq(key, value)
+
+        return query.execute()
+
+    except Exception as e:
+        st.error("데이터 삭제 중 문제가 발생했어요.")
+        with st.expander("오류 정보"):
+            st.caption(str(e))
+        return None
+
+
+# ============================================================
+# RECORD HELPERS
+# ============================================================
+
+def get_records():
+
+    records = db_select(
+        "checki_records",
+        {"user_id": USER_ID}
+    )
+
+    return records
+
+
+def get_expenses():
+
+    expenses = db_select(
+        "checki_expenses",
+        {"user_id": USER_ID}
+    )
+
+    return expenses
+
+
+def get_active_hold():
+
+    records = get_records()
+
+    active = []
+
+    now = datetime.now(timezone.utc)
+
+    for record in records:
+
+        if record.get("decision") != "hold":
+            continue
+
+        hold_until = record.get("hold_until")
+
+        if not hold_until:
+            continue
+
+        try:
+
+            dt = datetime.fromisoformat(
+                str(hold_until).replace("Z", "+00:00")
+            )
+
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+
+            if dt > now:
+                active.append((record, dt))
+
+        except:
+            pass
+
+    if not active:
+        return None, None
+
+    active.sort(
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    return active[0]
+
+
+def get_stats():
+
+    records = get_records()
+
+    analysis_count = len(records)
+
+    stopped = [
+        x for x in records
+        if x.get("decision") == "stop"
+    ]
+
+    stopped_count = len(stopped)
+
+    saved_money = 0
+
+    for item in stopped:
+
+        try:
+            saved_money += int(
+                item.get("price") or 0
+            )
+        except:
+            pass
+
+    return (
+        analysis_count,
+        stopped_count,
+        saved_money
+    )
+
+
+# ============================================================
+# CSS
+# ============================================================
+
+st.markdown("""
 <style>
 
-html, body, .stApp {
-    overflow-x: hidden !important;
-}
-
-.block-container {
-    max-width: 920px;
-    padding-top: 1rem !important;
-    padding-bottom: 5rem !important;
-}
-
-[data-testid="stHeader"] {
-    background: transparent !important;
-    height: 0 !important;
-}
-
-[data-testid="stToolbar"],
-[data-testid="stDecoration"],
-[data-testid="stStatusWidget"] {
-    display: none !important;
-}
-
+/* Streamlit 기본 UI */
 #MainMenu {
     visibility: hidden;
 }
@@ -75,1272 +263,660 @@ footer {
     visibility: hidden;
 }
 
+header {
+    background: transparent;
+}
+
+
+/* 전체 화면 */
+html,
+body,
+[data-testid="stAppViewContainer"],
+.stApp {
+    overflow-x: hidden !important;
+}
+
 .stApp {
     background:
         radial-gradient(
-            circle at 15% 5%,
-            rgba(41,151,255,.08),
-            transparent 30%
+            circle at 90% 4%,
+            #eaf4ff 0,
+            transparent 24%
         ),
-        radial-gradient(
-            circle at 90% 15%,
-            rgba(142,102,255,.06),
-            transparent 30%
-        ),
-        #f9fbff;
+        #f8fbff;
 }
 
-/* 로고 */
 
-.checki-logo {
-    font-size: 31px;
-    font-weight: 900;
-    color: #1689f8;
-    letter-spacing: -2px;
+/* 핵심: 화면 잘림 방지 */
+.block-container {
+    width: 92% !important;
+    max-width: 760px !important;
+    margin: 0 auto !important;
+    padding-top: 24px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+    padding-bottom: 90px !important;
+    box-sizing: border-box !important;
 }
 
-.checki-sub {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: #8993a4;
-    margin-top: -4px;
-    margin-bottom: 12px;
+[data-testid="stAppViewContainer"] > .main {
+    width: 100% !important;
+    overflow-x: hidden !important;
 }
 
-/* 로그인 */
-
-.login-wrap {
-    max-width: 520px;
-    margin: 35px auto 15px auto;
+[data-testid="stMainBlockContainer"] {
+    width: 92% !important;
+    max-width: 760px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
-.login-title {
-    text-align: center;
-    font-size: 31px;
-    font-weight: 900;
-    color: #0d315b;
-    letter-spacing: -1.5px;
+@media (max-width: 800px) {
+    .block-container,
+    [data-testid="stMainBlockContainer"] {
+        width: 88% !important;
+        max-width: 680px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
 }
 
-.login-desc {
-    text-align: center;
-    color: #738295;
-    line-height: 1.7;
-    margin: 10px 0 25px 0;
+
+* {
+    box-sizing: border-box;
 }
 
-/* Hero */
 
-.hero-card {
-    padding: 32px;
-    border-radius: 26px;
+html,
+body,
+[class*="css"] {
 
-    background:
-        linear-gradient(
-            135deg,
-            rgba(231,245,255,.98),
-            rgba(255,255,255,.98),
-            rgba(249,239,255,.90)
-        );
-
-    border: 1px solid #dce7f2;
-    margin: 20px 0 30px 0;
-
-    box-shadow:
-        0 12px 35px rgba(41,100,170,.05);
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans KR",
+        sans-serif;
 }
 
-.hero-badge {
-    display: inline-block;
-    background: #dff1ff;
-    color: #1689f8;
-    font-weight: 800;
-    padding: 8px 13px;
-    border-radius: 20px;
-    font-size: 14px;
-    margin-bottom: 16px;
-}
-
-.hero-title {
-    font-size: 36px;
-    line-height: 1.3;
-    font-weight: 900;
-    color: #0d315b;
-    letter-spacing: -2px;
-}
-
-.hero-text {
-    color: #6f7f91;
-    line-height: 1.8;
-    margin-top: 13px;
-}
-
-/* 카드 */
-
-.info-card {
-    padding: 20px;
-    background: white;
-    border: 1px solid #e1e8f0;
-    border-radius: 20px;
-    margin-bottom: 12px;
-}
-
-.blue-card {
-    padding: 20px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #edf8ff,
-            #f9fcff
-        );
-
-    border: 1px solid #d7e9f8;
-    border-radius: 20px;
-    margin: 12px 0;
-}
-
-.result-card {
-    padding: 22px;
-    background: white;
-    border: 1px solid #dfe7ef;
-    border-radius: 20px;
-    margin: 12px 0;
-}
-
-/* Metric */
-
-[data-testid="stMetric"] {
-    background: white;
-    border: 1px solid #e1e8f0;
-    padding: 18px 10px;
-    border-radius: 18px;
-    text-align: center;
-}
-
-[data-testid="stMetricValue"] {
-    color: #1689f8;
-}
 
 /* 버튼 */
 
-.stButton > button {
-    border-radius: 14px !important;
-    min-height: 48px;
-    font-weight: 800 !important;
+div.stButton > button {
+
+    width: 100%;
+
+    min-height: 50px;
+
+    border-radius: 15px;
+
+    font-weight: 800;
+
+    border: 1px solid #dce8f6;
 }
 
-/* 체키 파란색 PRIMARY */
 
-.stButton > button[kind="primary"] {
-    background: #1689f8 !important;
-    border: 1px solid #1689f8 !important;
-    color: white !important;
-    box-shadow: 0 7px 18px rgba(22,137,248,.18);
+div.stButton > button[kind="primary"] {
+
+    background:
+        linear-gradient(
+            135deg,
+            #1685ff,
+            #2875ef
+        );
+
+    color: white;
+
+    border: none;
 }
 
-.stButton > button[kind="primary"]:hover {
-    background: #087be8 !important;
-    border-color: #087be8 !important;
+
+/* 입력창 */
+
+div[data-testid="stFileUploader"] {
+
+    background: white;
+
+    border: 1px solid #e2ebf6;
+
+    padding: 12px;
+
+    border-radius: 20px;
 }
 
-/* 일반 버튼 */
 
-.stButton > button:not([kind="primary"]) {
-    border-color: #b8d9fa;
-    color: #167bd7;
+div[data-testid="stMetric"] {
+
+    background: white;
+
+    border: 1px solid #e4edf7;
+
+    border-radius: 18px;
+
+    padding: 15px;
 }
 
-/* Progress */
 
-.stProgress > div > div > div > div {
-    background-color: #1689f8;
+/* 네비 */
+
+div[data-testid="stRadio"] > div {
+
+    background: white;
+
+    border: 1px solid #e2eaf4;
+
+    border-radius: 18px;
+
+    padding: 5px;
+
+    overflow-x: auto;
 }
 
-/* 모바일 */
 
-@media (max-width: 600px) {
+/* LOGO */
+
+.logo {
+
+    font-size: 30px;
+
+    font-weight: 900;
+
+    color: #1683ff;
+
+    letter-spacing: -2px;
+}
+
+
+.logo-sub {
+
+    font-size: 10px;
+
+    color: #96a2b1;
+
+    letter-spacing: 1px;
+}
+
+
+/* HERO */
+
+.hero {
+
+    width: 100%;
+
+    padding: 30px 26px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #edf6ff,
+            #ffffff 55%,
+            #f3efff
+        );
+
+    border: 1px solid #e1ebf6;
+
+    border-radius: 28px;
+
+    box-shadow:
+        0 12px 35px
+        rgba(50,100,160,.07);
+
+    margin: 22px 0;
+
+    overflow: hidden;
+}
+
+
+.hero-badge {
+
+    display: inline-block;
+
+    padding: 7px 12px;
+
+    background: #deefff;
+
+    color: #1683ff;
+
+    border-radius: 30px;
+
+    font-size: 12px;
+
+    font-weight: 800;
+}
+
+
+.hero-title {
+
+    margin-top: 14px;
+
+    font-size: clamp(25px, 5vw, 32px);
+
+    line-height: 1.3;
+
+    font-weight: 900;
+
+    letter-spacing: -1.5px;
+
+    color: #102f5d;
+
+    word-break: keep-all;
+}
+
+
+.hero-desc {
+
+    margin-top: 12px;
+
+    color: #6e7f93;
+
+    line-height: 1.7;
+
+    font-size: 14px;
+
+    word-break: keep-all;
+}
+
+
+/* SECTION */
+
+.section {
+
+    font-size: 21px;
+
+    font-weight: 900;
+
+    color: #112f59;
+
+    margin: 28px 0 12px;
+
+    letter-spacing: -.7px;
+}
+
+
+/* CARD */
+
+.card,
+.card-blue,
+.card-red,
+.card-purple,
+.card-green {
+
+    width: 100%;
+
+    border-radius: 22px;
+
+    padding: 20px;
+
+    margin: 11px 0;
+
+    overflow: hidden;
+
+    word-break: keep-all;
+}
+
+
+.card {
+
+    background: white;
+
+    border: 1px solid #e5edf7;
+
+    box-shadow:
+        0 7px 25px
+        rgba(30,80,140,.05);
+}
+
+
+.card-blue {
+
+    background:
+        linear-gradient(
+            135deg,
+            #edf7ff,
+            #f9fcff
+        );
+
+    border: 1px solid #d9eaff;
+}
+
+
+.card-red {
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff0f0,
+            #fff8f8
+        );
+
+    border: 1px solid #ffdada;
+}
+
+
+.card-purple {
+
+    background:
+        linear-gradient(
+            135deg,
+            #f5f0ff,
+            #fcfaff
+        );
+
+    border: 1px solid #e9dfff;
+}
+
+
+.card-green {
+
+    background:
+        linear-gradient(
+            135deg,
+            #ecfbf4,
+            #f8fffb
+        );
+
+    border: 1px solid #d4f0e2;
+}
+
+
+.card-title {
+
+    color: #16365f;
+
+    font-size: 17px;
+
+    font-weight: 900;
+}
+
+
+.card-text {
+
+    margin-top: 7px;
+
+    color: #718095;
+
+    font-size: 14px;
+
+    line-height: 1.65;
+}
+
+
+.danger-title {
+
+    color: #e24e4e;
+
+    font-size: 17px;
+
+    font-weight: 900;
+}
+
+
+.tag {
+
+    display: inline-block;
+
+    padding: 5px 10px;
+
+    background: #ffe0e0;
+
+    color: #df5050;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    margin-top: 10px;
+}
+
+
+/* RESULT */
+
+.result-title {
+
+    font-size: 28px;
+
+    font-weight: 900;
+
+    color: #102e59;
+
+    text-align: center;
+
+    margin: 30px 0 6px;
+}
+
+
+.result-sub {
+
+    color: #7d8b9d;
+
+    font-size: 14px;
+
+    text-align: center;
+
+    margin-bottom: 20px;
+}
+
+
+.score {
+
+    font-size: 39px;
+
+    color: #e74f4f;
+
+    font-weight: 900;
+
+    margin-top: 5px;
+}
+
+
+/* STATS */
+
+.stat {
+
+    background: white;
+
+    border: 1px solid #e4edf7;
+
+    border-radius: 19px;
+
+    padding: 18px 5px;
+
+    text-align: center;
+
+    height: 100%;
+}
+
+
+.stat-value {
+
+    color: #1683ff;
+
+    font-size: 23px;
+
+    font-weight: 900;
+}
+
+
+.stat-label {
+
+    color: #8a98aa;
+
+    font-size: 11px;
+
+    margin-top: 5px;
+}
+
+
+/* PROGRESS */
+
+.progress-bg {
+
+    height: 9px;
+
+    background: #e6eff9;
+
+    border-radius: 20px;
+
+    margin-top: 10px;
+
+    overflow: hidden;
+}
+
+
+.progress-fill {
+
+    height: 100%;
+
+    background: #2188ff;
+
+    border-radius: 20px;
+}
+
+
+/* TIMER */
+
+.timer {
+
+    text-align: center;
+
+    color: #1683ff;
+
+    font-size: clamp(32px, 7vw, 45px);
+
+    font-weight: 900;
+
+    padding: 15px 0;
+}
+
+
+/* EMPTY */
+
+.empty {
+
+    text-align: center;
+
+    padding: 35px 20px;
+
+    color: #8392a5;
+}
+
+
+.empty-icon {
+
+    font-size: 38px;
+
+    margin-bottom: 10px;
+}
+
+
+/* FOOTER */
+
+.footer {
+
+    text-align: center;
+
+    color: #a3adba;
+
+    font-size: 10px;
+
+    margin-top: 55px;
+
+    line-height: 1.7;
+}
+
+
+/* 태블릿 / 모바일 */
+
+@media (max-width: 700px) {
 
     .block-container {
-        padding-left: 16px !important;
-        padding-right: 16px !important;
-        padding-top: .6rem !important;
+
+        padding-left: 14px !important;
+
+        padding-right: 14px !important;
+
+        padding-top: 15px !important;
     }
 
-    .hero-card {
-        padding: 23px;
+    .hero {
+
+        padding: 24px 20px;
     }
 
-    .hero-title {
-        font-size: 29px;
+    .card,
+    .card-blue,
+    .card-red,
+    .card-purple,
+    .card-green {
+
+        padding: 17px;
     }
 
-    .hero-text {
-        font-size: 14px;
-    }
+    .section {
 
-    .checki-logo {
-        font-size: 28px;
-    }
-
-    .login-title {
-        font-size: 27px;
-    }
-
-    div[data-testid="stRadio"]
-    div[role="radiogroup"] {
-        display: flex;
-        flex-wrap: wrap;
+        font-size: 19px;
     }
 }
 
 </style>
-""",
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 
-# =========================================================
-# 3. Supabase Auth 클라이언트
-# =========================================================
+# ============================================================
+# HTML HELPER
+# ============================================================
 
-def new_supabase_client():
-    return create_client(
-        SUPABASE_URL,
-        SUPABASE_KEY
+def html(content):
+
+    clean = re.sub(
+        r"\n\s*",
+        "",
+        content
     )
-
-
-# 세션별 Supabase 클라이언트
-if "supabase" not in st.session_state:
-    st.session_state.supabase = new_supabase_client()
-
-
-supabase = st.session_state.supabase
-
-
-# =========================================================
-# 4. Gemini
-# =========================================================
-
-@st.cache_resource
-def get_gemini():
-    return genai.Client(
-        api_key=GEMINI_API_KEY
-    )
-
-
-gemini = get_gemini()
-
-
-# =========================================================
-# 5. Auth 보조 함수
-# =========================================================
-
-def get_current_user():
-
-    try:
-        response = supabase.auth.get_user()
-
-        if response and response.user:
-            return response.user
-
-    except Exception:
-        pass
-
-    return None
-
-
-def login(email, password):
-
-    result = (
-        supabase.auth
-        .sign_in_with_password(
-            {
-                "email": email,
-                "password": password
-            }
-        )
-    )
-
-    if result.session:
-
-        st.session_state[
-            "access_token"
-        ] = result.session.access_token
-
-        st.session_state[
-            "refresh_token"
-        ] = result.session.refresh_token
-
-    return result
-
-
-def signup(email, password):
-
-    result = (
-        supabase.auth.sign_up(
-            {
-                "email": email,
-                "password": password
-            }
-        )
-    )
-
-    if result.session:
-
-        st.session_state[
-            "access_token"
-        ] = result.session.access_token
-
-        st.session_state[
-            "refresh_token"
-        ] = result.session.refresh_token
-
-    return result
-
-
-def logout():
-
-    try:
-        supabase.auth.sign_out()
-    except Exception:
-        pass
-
-    for key in [
-        "access_token",
-        "refresh_token",
-        "latest_analysis",
-        "latest_record",
-        "purchase_after_hold"
-    ]:
-
-        st.session_state.pop(
-            key,
-            None
-        )
-
-    # 완전히 새 클라이언트 생성
-    st.session_state.supabase = (
-        new_supabase_client()
-    )
-
-
-# =========================================================
-# 6. 기존 세션 복원
-# =========================================================
-
-if (
-    st.session_state.get("access_token")
-    and
-    st.session_state.get("refresh_token")
-):
-
-    try:
-
-        supabase.auth.set_session(
-            st.session_state[
-                "access_token"
-            ],
-            st.session_state[
-                "refresh_token"
-            ]
-        )
-
-    except Exception:
-
-        st.session_state.pop(
-            "access_token",
-            None
-        )
-
-        st.session_state.pop(
-            "refresh_token",
-            None
-        )
-
-
-current_user = get_current_user()
-
-
-# =========================================================
-# 7. 공통 로고
-# =========================================================
-
-st.markdown(
-    """
-<div class="checki-logo">
-체키
-</div>
-
-<div class="checki-sub">
-CHECK BEFORE YOU BUY
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-
-# =========================================================
-# 8. 로그인 안 된 상태
-# =========================================================
-
-if current_user is None:
-
-    # 마스코트
-    if os.path.exists(MASCOT_FILE):
-
-        a, b, c = st.columns(
-            [1, 1.1, 1]
-        )
-
-        with b:
-
-            st.image(
-                MASCOT_FILE,
-                use_container_width=True
-            )
-
 
     st.markdown(
-        """
-<div class="login-wrap">
-
-<div class="login-title">
-체키에 오신 것을 환영해요
-</div>
-
-<div class="login-desc">
-로그인하면 구매체크와 소비 기록을 저장하고<br>
-다음에 다시 접속해도 그대로 이어서 확인할 수 있어요.
-</div>
-
-</div>
-""",
+        clean,
         unsafe_allow_html=True
     )
 
 
-    login_tab, signup_tab = st.tabs(
-        [
-            "로그인",
-            "회원가입"
-        ]
-    )
-
-
-    # =====================================================
-    # 로그인
-    # =====================================================
-
-    with login_tab:
-
-        login_email = st.text_input(
-            "이메일",
-            placeholder="example@email.com",
-            key="login_email"
-        )
-
-        login_password = st.text_input(
-            "비밀번호",
-            type="password",
-            key="login_password"
-        )
-
-        if st.button(
-            "체키 로그인",
-            type="primary",
-            use_container_width=True,
-            key="login_button"
-        ):
-
-            if not login_email.strip():
-
-                st.warning(
-                    "이메일을 입력해주세요."
-                )
-
-            elif not login_password:
-
-                st.warning(
-                    "비밀번호를 입력해주세요."
-                )
-
-            else:
-
-                try:
-
-                    result = login(
-                        login_email.strip(),
-                        login_password
-                    )
-
-                    if result.user:
-
-                        st.success(
-                            "로그인했어요!"
-                        )
-
-                        st.rerun()
-
-                except Exception as e:
-
-                    error = str(e).lower()
-
-                    if (
-                        "invalid login"
-                        in error
-                        or
-                        "invalid credentials"
-                        in error
-                    ):
-
-                        st.error(
-                            "이메일 또는 비밀번호가 맞지 않아요."
-                        )
-
-                    else:
-
-                        st.error(
-                            "로그인하지 못했어요."
-                        )
-
-                        st.code(
-                            str(e)
-                        )
-
-
-    # =====================================================
-    # 회원가입
-    # =====================================================
-
-    with signup_tab:
-
-        signup_email = st.text_input(
-            "이메일",
-            placeholder="example@email.com",
-            key="signup_email"
-        )
-
-        signup_password = st.text_input(
-            "비밀번호",
-            type="password",
-            key="signup_password"
-        )
-
-        signup_password2 = st.text_input(
-            "비밀번호 확인",
-            type="password",
-            key="signup_password2"
-        )
-
-        st.caption(
-            "비밀번호는 6자 이상으로 만들어주세요."
-        )
-
-        if st.button(
-            "체키 시작하기",
-            type="primary",
-            use_container_width=True,
-            key="signup_button"
-        ):
-
-            if not signup_email.strip():
-
-                st.warning(
-                    "이메일을 입력해주세요."
-                )
-
-            elif len(
-                signup_password
-            ) < 6:
-
-                st.warning(
-                    "비밀번호는 6자 이상이어야 해요."
-                )
-
-            elif (
-                signup_password
-                != signup_password2
-            ):
-
-                st.warning(
-                    "비밀번호 확인이 일치하지 않아요."
-                )
-
-            else:
-
-                try:
-
-                    result = signup(
-                        signup_email.strip(),
-                        signup_password
-                    )
-
-                    if result.user:
-
-                        if result.session:
-
-                            st.success(
-                                "회원가입이 완료됐어요!"
-                            )
-
-                            st.rerun()
-
-                        else:
-
-                            st.success(
-                                "회원가입했어요. "
-                                "이메일 인증 후 로그인해주세요."
-                            )
-
-                except Exception as e:
-
-                    st.error(
-                        "회원가입 중 문제가 발생했어요."
-                    )
-
-                    st.code(
-                        str(e)
-                    )
-
-
-    st.stop()
-
-
-# =========================================================
-# 9. 로그인 사용자 ID
-# =========================================================
-
-user_id = str(
-    current_user.id
-)
-
-user_email = (
-    current_user.email
-    or ""
-)
-
-
-# =========================================================
-# 10. DB 함수
-# =========================================================
-
-def get_expenses():
-
-    try:
-
-        result = (
-            supabase
-            .table(
-                "checki_expenses"
-            )
-            .select("*")
-            .eq(
-                "user_id",
-                user_id
-            )
-            .order(
-                "created_at",
-                desc=True
-            )
-            .execute()
-        )
-
-        return (
-            result.data
-            or []
-        )
-
-    except Exception as e:
-
-        st.error(
-            "소비 기록을 불러오지 못했어요."
-        )
-
-        return []
-
-
-def get_records():
-
-    try:
-
-        result = (
-            supabase
-            .table(
-                "checki_records"
-            )
-            .select("*")
-            .eq(
-                "user_id",
-                user_id
-            )
-            .order(
-                "created_at",
-                desc=True
-            )
-            .execute()
-        )
-
-        return (
-            result.data
-            or []
-        )
-
-    except Exception:
-
-        return []
-
-
-def add_expense(
-    category,
-    item_name,
-    amount
-):
-
-    data = {
-
-        "user_id":
-            user_id,
-
-        "category":
-            category,
-
-        "item_name":
-            item_name,
-
-        "amount":
-            int(amount),
-
-        "purchased_at":
-            now_kst()
-            .date()
-            .isoformat(),
-
-        "created_at":
-            iso_now()
-    }
-
-    return (
-        supabase
-        .table(
-            "checki_expenses"
-        )
-        .insert(data)
-        .execute()
-    )
-
-
-def save_analysis_record(
-    product_name,
-    category,
-    risk_level,
-    risk_score,
-    summary,
-    detected,
-    ai_result,
-    action_text
-):
-
-    data = {
-
-        "user_id":
-            user_id,
-
-        "product_name":
-            product_name,
-
-        "category":
-            category,
-
-        "product_price":
-            0,
-
-        "risk_level":
-            risk_level,
-
-        "risk_score":
-            int(risk_score),
-
-        "one_line_summary":
-            summary,
-
-        "detected_elements":
-            detected,
-
-        "ai_result":
-            ai_result,
-
-        "action_text":
-            action_text,
-
-        "decision":
-            "checking",
-
-        "saved_amount":
-            0,
-
-        "created_at":
-            iso_now()
-    }
-
-
-    result = (
-        supabase
-        .table(
-            "checki_records"
-        )
-        .insert(data)
-        .execute()
-    )
-
-
-    if result.data:
-
-        return (
-            result.data[0]
-        )
-
-    return None
-
-
-def update_record(
-    record_id,
-    values
-):
-
-    return (
-        supabase
-        .table(
-            "checki_records"
-        )
-        .update(values)
-        .eq(
-            "id",
-            record_id
-        )
-        .eq(
-            "user_id",
-            user_id
-        )
-        .execute()
-    )
-
-
-# =========================================================
-# 11. 통계
-# =========================================================
-
-def calculate_stats():
-
-    expenses = get_expenses()
-    records = get_records()
-
-    total_spending = sum(
-        int(
-            x.get("amount")
-            or 0
-        )
-        for x in expenses
-    )
-
-    abandoned = [
-        x
-        for x in records
-        if x.get("decision")
-        == "abandoned"
-    ]
-
-    saved_amount = sum(
-        int(
-            x.get("saved_amount")
-            or 0
-        )
-        for x in abandoned
-    )
-
-    return {
-
-        "expenses":
-            expenses,
-
-        "records":
-            records,
-
-        "total_spending":
-            total_spending,
-
-        "purchase_checks":
-            len(records),
-
-        "abandoned_count":
-            len(abandoned),
-
-        "saved_amount":
-            saved_amount
-    }
-
-
-# =========================================================
-# 12. URL 읽기
-# =========================================================
-
-def read_url(url):
-
-    if not url.startswith(
-        (
-            "http://",
-            "https://"
-        )
-    ):
-
-        url = (
-            "https://"
-            + url
-        )
-
-
-    headers = {
-
-        "User-Agent":
-            "Mozilla/5.0 "
-            "(iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-            "AppleWebKit/605.1.15 "
-            "Version/17.0 "
-            "Mobile Safari/604.1"
-    }
-
-
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=12
-    )
-
-    response.raise_for_status()
-
-
-    soup = BeautifulSoup(
-        response.text,
-        "html.parser"
-    )
-
-
-    for tag in soup(
-        [
-            "script",
-            "style",
-            "noscript",
-            "svg"
-        ]
-    ):
-
-        tag.decompose()
-
-
-    title = ""
-
-    if soup.title:
-
-        title = (
-            soup.title
-            .get_text(
-                " ",
-                strip=True
-            )
-        )
-
-
-    text = soup.get_text(
-        " ",
-        strip=True
-    )
-
-
-    text = re.sub(
-        r"\s+",
-        " ",
-        text
-    )
-
-
-    return (
-        title,
-        text[:18000]
-    )
-
-
-# =========================================================
-# 13. Gemini 호출
-# =========================================================
-
-def call_gemini(contents):
-
-    # 사용 가능한 모델을 순차 시도
-    models = [
-        "gemini-3.8-flash",
-        "gemini-3-flash-preview",
-        "gemini-2.5-flash"
-    ]
-
-    last_error = None
-
-
-    for model_name in models:
-
-        for attempt in range(3):
-
-            try:
-
-                response = (
-                    gemini.models
-                    .generate_content(
-                        model=model_name,
-                        contents=contents
-                    )
-                )
-
-                if response.text:
-
-                    return response
-
-
-            except Exception as e:
-
-                last_error = e
-
-                error = (
-                    str(e)
-                    .lower()
-                )
-
-
-                temporary = (
-                    "503" in error
-                    or
-                    "high demand"
-                    in error
-                    or
-                    "unavailable"
-                    in error
-                    or
-                    "429" in error
-                    or
-                    "resource_exhausted"
-                    in error
-                )
-
-
-                if temporary:
-
-                    time.sleep(
-                        2
-                        * (
-                            attempt
-                            + 1
-                        )
-                    )
-
-                    continue
-
-
-                # 모델 없음/404 등이면
-                # 다음 모델 시도
-                break
-
-
-    if last_error:
-
-        raise last_error
-
-
-    raise Exception(
-        "AI 분석 결과를 받지 못했습니다."
-    )
-
-
-# =========================================================
-# 14. Prompt
-# =========================================================
-
-def analysis_prompt(
-    product_name,
-    category,
-    source_type,
-    webpage_text=""
-):
-
-    return f"""
-너는 소비자의 충동구매와 다크패턴 피해를 예방하는
-AI 소비 방어 도우미 '체키(CHECKI)'다.
-
-사용자는 현재 상품 구매를 고민하고 있다.
-
-상품명: {product_name}
-카테고리: {category}
-분석 방식: {source_type}
-
-웹페이지에서 추출한 정보가 있다면 아래와 같다.
-
-{webpage_text}
-
-
-다음 요소를 분석한다.
-
-1. 시간 압박
-2. 희소성 강조
-3. 사회적 증거를 이용한 압박
-4. 과도한 할인 강조
-5. 추가비용 은폐
-6. 구독 또는 자동결제 유도
-7. 선택 방해
-8. 취소 방해
-9. 감정적 압박
-10. 반복적인 구매 유도
-
-
-중요:
-
-화면이나 페이지에서 실제로 확인되지 않는 내용은
-절대 만들어내지 않는다.
-
-단순 할인 자체를 다크패턴으로 판단하지 않는다.
-
-가격이 화면에 보이면 분석에 참고할 수 있지만
-가격이 없어도 정상적으로 분석한다.
-
-소비자가 스스로 합리적으로 결정할 수 있도록
-중립적으로 설명한다.
-
-
-반드시 아래 형식으로 답한다.
-
-RISK_LEVEL: 낮음/주의/높음
-
-RISK_SCORE: 0~100 사이 정수
-
-SUMMARY: 한 문장 요약
-
-DETECTED: 발견된 요소. 여러 개면 | 로 구분
-
-ACTION: 결제 전에 다시 확인할 행동
-
-DETAIL:
-판단 근거를 쉽게 설명한다.
-"""
-
-
-# =========================================================
-# 15. AI 응답 파싱
-# =========================================================
-
-def extract_value(
-    text,
-    key,
-    default=""
-):
-
-    match = re.search(
-        rf"{key}:\s*(.*)",
-        text,
-        re.IGNORECASE
-    )
-
-    if match:
-
-        return (
-            match.group(1)
-            .strip()
-        )
-
-    return default
-
-
-def parse_ai_result(text):
-
-    risk_level = extract_value(
-        text,
-        "RISK_LEVEL",
-        "주의"
-    )
-
-    score_text = extract_value(
-        text,
-        "RISK_SCORE",
-        "50"
-    )
-
-    score_match = re.search(
-        r"\d+",
-        score_text
-    )
-
-    risk_score = (
-        int(
-            score_match.group()
-        )
-        if score_match
-        else 50
-    )
-
-    risk_score = max(
-        0,
-        min(
-            100,
-            risk_score
-        )
-    )
-
-    summary = extract_value(
-        text,
-        "SUMMARY",
-        "구매 전 한 번 더 확인해보세요."
-    )
-
-    detected = extract_value(
-        text,
-        "DETECTED",
-        "뚜렷한 구매 유도 요소 없음"
-    )
-
-    action = extract_value(
-        text,
-        "ACTION",
-        "지금 필요한 구매인지 다시 확인해보세요."
-    )
-
-    if "DETAIL:" in text:
-
-        detail = (
-            text
-            .split(
-                "DETAIL:",
-                1
-            )[1]
-            .strip()
-        )
-
-    else:
-
-        detail = text
-
-
-    return (
-        risk_level,
-        risk_score,
-        summary,
-        detected,
-        action,
-        detail
-    )
-
-
-# =========================================================
-# 16. 메뉴
-# =========================================================
-
-menu = st.radio(
-    "메뉴",
+# ============================================================
+# HEADER
+# ============================================================
+
+html("""
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+width:100%;
+">
+    <div>
+        <div class="logo">체키</div>
+        <div class="logo-sub">
+            CHECK BEFORE YOU BUY
+        </div>
+    </div>
+
+    <div style="
+    font-size:25px;
+    color:#1683ff;
+    font-weight:900;
+    ">
+        ✓
+    </div>
+</div>
+""")
+
+
+# ============================================================
+# NAVIGATION
+# ============================================================
+
+nav = st.radio(
+    "navigation",
     [
         "🏠 홈",
         "✓ 구매체크",
@@ -1351,1368 +927,1417 @@ menu = st.radio(
     label_visibility="collapsed"
 )
 
-
-# =========================================================
-# 17. 홈
-# =========================================================
-
-if menu == "🏠 홈":
-
-    stats = calculate_stats()
+page = nav.split(" ", 1)[1]
 
 
-    left, right = st.columns(
-        [1.6, 1]
+# ============================================================
+# STATS
+# ============================================================
+
+analysis_count, stopped_count, saved_money = get_stats()
+
+
+# ============================================================
+# HOME
+# ============================================================
+
+if page == "홈":
+
+    html("""
+    <div class="hero">
+
+        <div class="hero-badge">
+            AI 소비 방어 도우미
+        </div>
+
+        <div class="hero-title">
+            구매 전,<br>
+            한 번 더 체키해 보세요.
+        </div>
+
+        <div class="hero-desc">
+            쇼핑 화면 속 구매 유도 요소를 확인하고,
+            실제 나의 소비 기록과 함께 살펴보며
+            지금 필요한 소비인지 한 번 더
+            생각할 수 있도록 도와드려요.
+        </div>
+
+    </div>
+    """)
+
+    html(
+        '<div class="section">'
+        '나의 체키'
+        '</div>'
     )
-
-
-    with left:
-
-        st.markdown(
-            """
-<div class="hero-card">
-
-<div class="hero-badge">
-AI 소비 방어 도우미
-</div>
-
-<div class="hero-title">
-구매 전,<br>
-한 번 더 체키해 보세요.
-</div>
-
-<div class="hero-text">
-쇼핑 화면 속 구매 유도 요소를 확인하고,
-나의 실제 소비 기록과 함께 살펴보며
-지금 필요한 소비인지 한 번 더 생각할 수 있도록 도와드려요.
-</div>
-
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-
-    with right:
-
-        if os.path.exists(
-            MASCOT_FILE
-        ):
-
-            st.image(
-                MASCOT_FILE,
-                use_container_width=True
-            )
-
-
-    st.subheader(
-        "나의 체키"
-    )
-
 
     c1, c2, c3 = st.columns(3)
 
-
     with c1:
 
-        st.metric(
-            "구매 체크",
-            stats[
-                "purchase_checks"
-            ]
+        html(
+            f"""
+            <div class="stat">
+                <div class="stat-value">
+                    {analysis_count}
+                </div>
+                <div class="stat-label">
+                    구매 체크
+                </div>
+            </div>
+            """
         )
-
 
     with c2:
 
-        st.metric(
-            "구매 포기",
-            stats[
-                "abandoned_count"
-            ]
+        html(
+            f"""
+            <div class="stat">
+                <div class="stat-value">
+                    {stopped_count}
+                </div>
+                <div class="stat-label">
+                    구매 포기
+                </div>
+            </div>
+            """
         )
-
 
     with c3:
 
-        st.metric(
-            "누적 소비",
-            f'{stats["total_spending"]:,}원'
+        html(
+            f"""
+            <div class="stat">
+                <div class="stat-value">
+                    {saved_money:,}
+                </div>
+                <div class="stat-label">
+                    방어 금액(원)
+                </div>
+            </div>
+            """
         )
 
-
-    st.markdown(
-        "### 체키는 이렇게 도와드려요"
+    html(
+        '<div class="section">'
+        '체키는 이렇게 도와드려요'
+        '</div>'
     )
 
+    html("""
+    <div class="card">
 
-    st.markdown(
-        """
-<div class="blue-card">
-<b>① 구매 화면 체크</b><br><br>
-구매를 고민하고 있는 화면이나 상품 링크를 보여주세요.
-AI가 구매를 서두르게 하는 요소를 살펴봐요.
-</div>
+        <div class="card-title">
+            🔎 AI 구매 화면 분석
+        </div>
 
-<div class="blue-card">
-<b>② 잠깐 보류하기</b><br><br>
-바로 결제하지 않고 30분 동안 구매 결정을 보류할 수 있어요.
-</div>
+        <div class="card-text">
+            타이머, 재고 부족, 할인 강조 등
+            소비자의 구매 결정을 서두르게 할 수 있는
+            요소를 AI가 확인해요.
+        </div>
 
-<div class="blue-card">
-<b>③ 나의 소비 확인</b><br><br>
-실제 소비 기록을 저장하고 다시 접속해도 이어서 확인할 수 있어요.
-</div>
-""",
-        unsafe_allow_html=True
+    </div>
+    """)
+
+    html("""
+    <div class="card-blue">
+
+        <div class="card-title">
+            📊 내 실제 소비 기록 확인
+        </div>
+
+        <div class="card-text">
+            직접 기록한 소비내역을 바탕으로
+            카테고리별 소비상황을 확인할 수 있어요.
+        </div>
+
+    </div>
+    """)
+
+    html("""
+    <div class="card-purple">
+
+        <div class="card-title">
+            ⏸ 30분 고민하기
+        </div>
+
+        <div class="card-text">
+            바로 결제하지 않고 구매를 잠시 보류해
+            충동적인 결정을 다시 생각할 시간을 만들어요.
+        </div>
+
+    </div>
+    """)
+
+
+# ============================================================
+# 구매 체크
+# ============================================================
+
+elif page == "구매체크":
+
+    html(
+        '<div class="section">'
+        '구매 전, 한 번 더 체크해 보세요'
+        '</div>'
     )
 
+    html("""
+    <div class="card-blue">
 
-# =========================================================
-# 18. 구매체크
-# =========================================================
+        <div class="card-title">
+            📸 쇼핑 화면을 올려주세요
+        </div>
 
-elif menu == "✓ 구매체크":
+        <div class="card-text">
+            체키가 구매를 서두르게 하는 요소가 있는지
+            AI로 확인해드려요.
+        </div>
 
-    st.header(
-        "구매 전, 한 번 더 체키해 보세요"
-    )
+    </div>
+    """)
 
-
-    st.markdown(
-        """
-<div class="blue-card">
-<b>📸 쇼핑 화면 또는 🔗 상품 링크를 보여주세요.</b>
-<br><br>
-상품 가격을 따로 입력하지 않아도 돼요.
-체키가 구매 유도 요소와 다크패턴 가능성을 살펴봅니다.
-</div>
-""",
-        unsafe_allow_html=True
-    )
-
-
-    analysis_type = st.radio(
-        "분석 방법",
-        [
-            "📸 이미지 분석",
-            "🔗 링크 분석"
-        ],
-        horizontal=True
-    )
-
-
-    uploaded_file = None
-    shopping_url = ""
-
-
-    if (
-        analysis_type
-        == "📸 이미지 분석"
-    ):
-
-        uploaded_file = (
-            st.file_uploader(
-                "구매를 고민 중인 쇼핑 화면",
-                type=[
-                    "png",
-                    "jpg",
-                    "jpeg"
-                ]
-            )
-        )
-
-
-        if uploaded_file:
-
-            image = Image.open(
-                uploaded_file
-            )
-
-            st.image(
-                image,
-                use_container_width=True
-            )
-
-
-    else:
-
-        shopping_url = st.text_input(
-            "상품 링크",
-            placeholder="https://..."
-        )
-
-        st.caption(
-            "사이트가 외부 접근을 차단하면 "
-            "스크린샷 분석을 이용해주세요."
-        )
-
-
-    product_name = st.text_input(
-        "상품명",
-        placeholder="예: 에어팟"
-    )
-
-
-    category = st.selectbox(
-        "카테고리",
-        [
-            "의류",
-            "패션잡화",
-            "화장품/뷰티",
-            "식비",
-            "전자기기",
-            "생활용품",
-            "취미/여가",
-            "구독",
-            "교통",
-            "기타"
+    uploaded_file = st.file_uploader(
+        "쇼핑 화면 업로드",
+        type=[
+            "png",
+            "jpg",
+            "jpeg"
         ]
     )
 
-
-    can_analyze = (
-        uploaded_file is not None
-        if (
-            analysis_type
-            == "📸 이미지 분석"
-        )
-        else bool(
-            shopping_url.strip()
-        )
+    product = st.text_input(
+        "상품명",
+        placeholder="예: 러닝화"
     )
 
-
-    if st.button(
-        "🔎 체키로 분석하기",
-        type="primary",
-        use_container_width=True,
-        disabled=not can_analyze
-    ):
-
-        if not product_name.strip():
-
-            st.warning(
-                "상품명을 입력해주세요."
-            )
-
-        else:
-
-            try:
-
-                with st.spinner(
-                    "🤖 체키가 구매 유도 요소를 분석하고 있어요..."
-                ):
-
-
-                    if (
-                        analysis_type
-                        == "🔗 링크 분석"
-                    ):
-
-                        title, webpage_text = (
-                            read_url(
-                                shopping_url.strip()
-                            )
-                        )
-
-
-                        prompt = analysis_prompt(
-                            product_name,
-                            category,
-                            "쇼핑 링크",
-                            webpage_text
-                        )
-
-
-                        response = call_gemini(
-                            prompt
-                        )
-
-
-                    else:
-
-                        image = Image.open(
-                            uploaded_file
-                        )
-
-
-                        prompt = analysis_prompt(
-                            product_name,
-                            category,
-                            "쇼핑 화면 이미지"
-                        )
-
-
-                        response = call_gemini(
-                            [
-                                prompt,
-                                image
-                            ]
-                        )
-
-
-                    ai_text = (
-                        response.text
-                        or ""
-                    )
-
-
-                    (
-                        risk_level,
-                        risk_score,
-                        summary,
-                        detected,
-                        action,
-                        detail
-                    ) = parse_ai_result(
-                        ai_text
-                    )
-
-
-                    record = save_analysis_record(
-                        product_name.strip(),
-                        category,
-                        risk_level,
-                        risk_score,
-                        summary,
-                        detected,
-                        detail,
-                        action
-                    )
-
-
-                    st.session_state[
-                        "latest_record"
-                    ] = record
-
-
-                    st.session_state[
-                        "latest_analysis"
-                    ] = {
-
-                        "risk_level":
-                            risk_level,
-
-                        "risk_score":
-                            risk_score,
-
-                        "summary":
-                            summary,
-
-                        "detected":
-                            detected,
-
-                        "action":
-                            action,
-
-                        "detail":
-                            detail,
-
-                        "product_name":
-                            product_name.strip(),
-
-                        "category":
-                            category
-                    }
-
-
-            except requests.exceptions.RequestException:
-
-                st.error(
-                    "이 사이트의 내용을 직접 불러오지 못했어요. "
-                    "상품 화면을 캡처해서 분석해주세요."
-                )
-
-
-            except Exception as e:
-
-                st.error(
-                    "분석 중 문제가 발생했어요."
-                )
-
-                st.code(
-                    str(e)
-                )
-
-
-    # =====================================================
-    # 분석 결과
-    # =====================================================
-
-    if (
-        "latest_analysis"
-        in st.session_state
-    ):
-
-        result = (
-            st.session_state[
-                "latest_analysis"
-            ]
-        )
-
-        record = (
-            st.session_state.get(
-                "latest_record"
-            )
-        )
-
-
-        st.divider()
-
-        st.subheader(
-            "체키 분석 결과"
-        )
-
-
-        st.markdown(
-            f"""
-<div class="result-card">
-
-<b>위험도</b><br>
-{result["risk_level"]}
-
-<br><br>
-
-<b>체키 위험 점수</b><br>
-{result["risk_score"]} / 100
-
-<br><br>
-
-<b>한 줄 분석</b><br>
-{result["summary"]}
-
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-
-        st.progress(
-            result[
-                "risk_score"
-            ] / 100
-        )
-
-
-        st.markdown(
-            "#### ⚠️ 발견된 요소"
-        )
-
-
-        for element in (
-            result[
-                "detected"
-            ]
-            .split("|")
-        ):
-
-            if element.strip():
-
-                st.write(
-                    "• "
-                    + element.strip()
-                )
-
-
-        st.markdown(
-            "#### 🧠 체키의 분석"
-        )
-
-        st.write(
-            result[
-                "detail"
-            ]
-        )
-
-
-        st.markdown(
-            "#### ✅ 결제 전 체크"
-        )
-
-        st.info(
-            result[
-                "action"
-            ]
-        )
-
-
-        st.markdown(
-            "### 그래서, 이 상품 어떻게 할까요?"
-        )
-
-
-        if record:
-
-            col1, col2 = st.columns(2)
-
-
-            with col1:
-
-                if st.button(
-                    "⏱️ 30분 보류",
-                    use_container_width=True
-                ):
-
-                    start = now_kst()
-
-                    until = (
-                        start
-                        + timedelta(
-                            minutes=30
-                        )
-                    )
-
-
-                    update_record(
-                        record["id"],
-                        {
-
-                            "decision":
-                                "hold",
-
-                            "hold_started_at":
-                                start.isoformat(),
-
-                            "hold_until":
-                                until.isoformat()
-                        }
-                    )
-
-
-                    st.success(
-                        "30분 동안 구매를 보류했어요. "
-                        "MY에서 다시 확인할 수 있어요."
-                    )
-
-
-            with col2:
-
-                if st.button(
-                    "🛡️ 구매하지 않기",
-                    type="primary",
-                    use_container_width=True
-                ):
-
-                    update_record(
-                        record["id"],
-                        {
-
-                            "decision":
-                                "abandoned",
-
-                            "saved_amount":
-                                0,
-
-                            "decided_at":
-                                iso_now()
-                        }
-                    )
-
-
-                    st.session_state.pop(
-                        "latest_analysis",
-                        None
-                    )
-
-                    st.session_state.pop(
-                        "latest_record",
-                        None
-                    )
-
-
-                    st.rerun()
-
-
-# =========================================================
-# 19. 소비분석
-# =========================================================
-
-elif menu == "📊 소비분석":
-
-    stats = calculate_stats()
-
-
-    st.header(
-        "나의 소비분석"
-    )
-
-
-    c1, c2 = st.columns(2)
-
-
-    with c1:
-
-        st.metric(
-            "누적 소비",
-            f'{stats["total_spending"]:,}원'
-        )
-
-
-    with c2:
-
-        st.metric(
-            "구매 포기",
-            f'{stats["abandoned_count"]}회'
-        )
-
-
-    st.divider()
-
-
-    st.markdown(
-        "### ＋ 소비내역 추가하기"
-    )
-
-
-    expense_category = st.selectbox(
-        "소비 카테고리",
-        [
-            "식비",
-            "의류",
-            "패션잡화",
-            "화장품/뷰티",
-            "전자기기",
-            "생활용품",
-            "취미/여가",
-            "교통",
-            "구독",
-            "기타"
-        ],
-        key="expense_category"
-    )
-
-
-    expense_name = st.text_input(
-        "구매한 항목",
-        placeholder="예: 점심, 운동화",
-        key="expense_name"
-    )
-
-
-    expense_amount = st.number_input(
-        "사용한 금액",
+    price = st.number_input(
+        "상품 가격",
         min_value=0,
         step=1000,
-        value=0,
-        key="expense_amount"
+        format="%d"
     )
 
+    if uploaded_file is not None:
 
-    if st.button(
-        "소비내역 저장",
-        type="primary",
-        use_container_width=True
-    ):
+        image = Image.open(uploaded_file)
 
-        if not expense_name.strip():
-
-            st.warning(
-                "구매한 항목을 입력해주세요."
-            )
-
-        elif expense_amount <= 0:
-
-            st.warning(
-                "사용한 금액을 입력해주세요."
-            )
-
-        else:
-
-            try:
-
-                add_expense(
-                    expense_category,
-                    expense_name.strip(),
-                    expense_amount
-                )
-
-                st.rerun()
-
-            except Exception as e:
-
-                st.error(
-                    "저장하지 못했어요."
-                )
-
-                st.code(
-                    str(e)
-                )
-
-
-    expenses = get_expenses()
-
-
-    st.divider()
-
-    st.markdown(
-        "### 나의 소비내역"
-    )
-
-
-    if not expenses:
-
-        st.info(
-            "아직 등록된 소비내역이 없어요."
+        st.image(
+            image,
+            caption="체키가 확인할 구매 화면",
+            width="stretch"
         )
-
-
-    else:
-
-        category_totals = {}
-
-
-        for expense in expenses:
-
-            category_name = (
-                expense.get(
-                    "category"
-                )
-                or "기타"
-            )
-
-            amount = int(
-                expense.get(
-                    "amount"
-                )
-                or 0
-            )
-
-
-            category_totals[
-                category_name
-            ] = (
-                category_totals.get(
-                    category_name,
-                    0
-                )
-                + amount
-            )
-
-
-        st.markdown(
-            "#### 카테고리별 소비"
-        )
-
-
-        total = max(
-            stats[
-                "total_spending"
-            ],
-            1
-        )
-
-
-        for (
-            category_name,
-            amount
-        ) in sorted(
-            category_totals.items(),
-            key=lambda x:
-                x[1],
-            reverse=True
-        ):
-
-            st.write(
-                f"**{category_name}** · "
-                f"{amount:,}원"
-            )
-
-            st.progress(
-                min(
-                    amount / total,
-                    1.0
-                )
-            )
-
-
-        st.divider()
-
-
-        st.markdown(
-            "#### 최근 소비"
-        )
-
-
-        for expense in (
-            expenses[:10]
-        ):
-
-            name = (
-                expense.get(
-                    "item_name"
-                )
-                or "소비"
-            )
-
-            category_name = (
-                expense.get(
-                    "category"
-                )
-                or "기타"
-            )
-
-            amount = int(
-                expense.get(
-                    "amount"
-                )
-                or 0
-            )
-
-
-            st.markdown(
-                f"""
-<div class="info-card">
-
-<b>{name}</b>
-
-<br>
-
-<span style="color:#7a8795">
-{category_name}
-</span>
-
-<br><br>
-
-<b>{amount:,}원</b>
-
-</div>
-""",
-                unsafe_allow_html=True
-            )
-
-
-# =========================================================
-# 20. MY
-# =========================================================
-
-elif menu == "👤 MY":
-
-    stats = calculate_stats()
-    records = stats["records"]
-
-
-    st.header(
-        "MY"
-    )
-
-
-    # =====================================================
-    # 계정
-    # =====================================================
-
-    st.markdown(
-        "### 내 계정"
-    )
-
-
-    st.markdown(
-        f"""
-<div class="blue-card">
-
-<b>로그인 계정</b>
-
-<br><br>
-
-{user_email}
-
-<br><br>
-
-이 계정으로 다시 로그인하면
-현재 체키 기록을 다시 불러올 수 있어요.
-
-</div>
-""",
-        unsafe_allow_html=True
-    )
-
-
-    if st.button(
-        "로그아웃",
-        use_container_width=True
-    ):
-
-        logout()
-
-        st.rerun()
-
-
-    st.divider()
-
-
-    # =====================================================
-    # 통계
-    # =====================================================
-
-    st.markdown(
-        "### 나의 체키 기록"
-    )
-
-
-    c1, c2, c3 = st.columns(3)
-
-
-    with c1:
-
-        st.metric(
-            "구매 체크",
-            stats[
-                "purchase_checks"
-            ]
-        )
-
-
-    with c2:
-
-        st.metric(
-            "구매 포기",
-            stats[
-                "abandoned_count"
-            ]
-        )
-
-
-    with c3:
-
-        st.metric(
-            "누적 소비",
-            f'{stats["total_spending"]:,}원'
-        )
-
-
-    st.divider()
-
-
-    # =====================================================
-    # 보류 중
-    # =====================================================
-
-    st.markdown(
-        "### ⏱️ 보류 중인 구매"
-    )
-
-
-    active_holds = []
-
-
-    for record in records:
-
-        if (
-            record.get(
-                "decision"
-            )
-            != "hold"
-        ):
-
-            continue
-
-
-        hold_text = (
-            record.get(
-                "hold_until"
-            )
-        )
-
-
-        if not hold_text:
-
-            continue
-
-
-        try:
-
-            hold_until = (
-                datetime
-                .fromisoformat(
-                    hold_text
-                    .replace(
-                        "Z",
-                        "+00:00"
-                    )
-                )
-            )
-
-
-            if (
-                hold_until.tzinfo
-                is None
-            ):
-
-                hold_until = (
-                    hold_until
-                    .replace(
-                        tzinfo=KST
-                    )
-                )
-
-
-            if (
-                hold_until
-                > now_kst()
-            ):
-
-                active_holds.append(
-                    (
-                        record,
-                        hold_until
-                    )
-                )
-
-
-        except Exception:
-
-            pass
-
-
-    if not active_holds:
-
-        st.info(
-            "현재 보류 중인 구매가 없어요."
-        )
-
-
-    else:
-
-        for (
-            record,
-            hold_until
-        ) in active_holds:
-
-            remaining = (
-                hold_until
-                - now_kst()
-            )
-
-
-            seconds = max(
-                0,
-                int(
-                    remaining
-                    .total_seconds()
-                )
-            )
-
-
-            minutes = (
-                seconds // 60
-            )
-
-
-            product = (
-                record.get(
-                    "product_name"
-                )
-                or "상품"
-            )
-
-
-            category_name = (
-                record.get(
-                    "category"
-                )
-                or "기타"
-            )
-
-
-            st.markdown(
-                f"""
-<div class="result-card">
-
-<b>{product}</b>
-
-<br>
-
-{category_name}
-
-<br><br>
-
-⏱️ 약 {minutes}분 남음
-
-</div>
-""",
-                unsafe_allow_html=True
-            )
-
-
-            col1, col2 = (
-                st.columns(2)
-            )
-
-
-            with col1:
-
-                if st.button(
-                    "구매하기",
-                    key=
-                        f'buy_{record["id"]}',
-                    use_container_width=True
-                ):
-
-                    update_record(
-                        record["id"],
-                        {
-
-                            "decision":
-                                "purchased",
-
-                            "decided_at":
-                                iso_now()
-                        }
-                    )
-
-
-                    st.session_state[
-                        "purchase_after_hold"
-                    ] = {
-
-                        "record_id":
-                            record["id"],
-
-                        "product":
-                            product,
-
-                        "category":
-                            category_name
-                    }
-
-
-                    st.rerun()
-
-
-            with col2:
-
-                if st.button(
-                    "구매 포기",
-                    key=
-                        f'abandon_{record["id"]}',
-                    type="primary",
-                    use_container_width=True
-                ):
-
-                    update_record(
-                        record["id"],
-                        {
-
-                            "decision":
-                                "abandoned",
-
-                            "saved_amount":
-                                0,
-
-                            "decided_at":
-                                iso_now()
-                        }
-                    )
-
-
-                    st.rerun()
-
-
-    # =====================================================
-    # 구매 결정 후 금액 입력
-    # =====================================================
-
-    if (
-        "purchase_after_hold"
-        in st.session_state
-    ):
-
-        purchase_data = (
-            st.session_state[
-                "purchase_after_hold"
-            ]
-        )
-
-
-        st.markdown(
-            "### 구매 기록 남기기"
-        )
-
-
-        purchase_price = (
-            st.number_input(
-                "실제 결제 금액",
-                min_value=0,
-                step=1000,
-                value=0
-            )
-        )
-
 
         if st.button(
-            "구매내역 저장",
+            "🔎 체키로 확인하기",
             type="primary",
             use_container_width=True
         ):
 
-            if purchase_price <= 0:
+            progress = st.progress(5)
+
+            message = st.empty()
+
+            try:
+
+                message.info(
+                    "① 구매 화면을 확인하고 있어요."
+                )
+
+                progress.progress(20)
+
+                client = genai.Client(
+                    api_key=st.secrets[
+                        "GEMINI_API_KEY"
+                    ]
+                )
+
+                prompt = """
+너는 AI 소비자 보호 서비스
+'체키(CHECKI)'다.
+
+사용자가 업로드한 온라인 쇼핑 화면을
+분석하라.
+
+목표는 구매를 무조건 막는 것이 아니라
+소비자의 구매 결정을 서두르게 만들 수 있는
+요소를 객관적으로 알려주는 것이다.
+
+다음 요소를 확인한다.
+
+- 긴급성 표현
+- 카운트다운
+- 오늘만 할인
+- 품절 임박
+- 재고 부족
+- 사회적 압박
+- 판매량 강조
+- 현재 보고 있는 사람 수
+- 과도한 할인 강조
+- 기준가격 프레이밍
+- 자동 선택 옵션
+- 구독 및 자동결제
+- 취소나 거절을 어렵게 하는 구조
+- 구매 버튼의 과도한 시각적 강조
+- 기타 다크패턴 가능성이 있는 요소
+
+이미지에서 실제 확인되는 내용만 사용한다.
+
+보이지 않는 정보는 절대 추측하지 않는다.
+
+다크패턴이 명확하지 않으면
+그 사실도 명확하게 말한다.
+
+반드시 다음 형식으로 출력한다.
+
+RISK: 낮음 또는 주의 또는 높음
+SCORE: 0부터 100 사이 정수
+SUMMARY: 가장 중요한 분석 결과 한 문장
+TYPES: 핵심 유형 최대 3개
+EVIDENCE: 화면에서 직접 확인한 근거
+ACTION: 결제 전에 확인할 내용 한 문장
+"""
+
+                response_text = None
+
+                last_error = None
+
+                for attempt in range(3):
+
+                    try:
+
+                        message.info(
+                            "② 구매 유도 요소를 "
+                            "AI가 확인하고 있어요."
+                        )
+
+                        progress.progress(50)
+
+                        response = (
+                            client.models.generate_content(
+                                model="gemini-2.5-flash",
+                                contents=[
+                                    prompt,
+                                    image
+                                ]
+                            )
+                        )
+
+                        response_text = response.text
+
+                        break
+
+                    except Exception as e:
+
+                        last_error = e
+
+                        if (
+                            "503" in str(e)
+                            or
+                            "UNAVAILABLE" in str(e)
+                        ):
+
+                            if attempt < 2:
+
+                                message.info(
+                                    "AI 요청이 많아 "
+                                    "자동으로 다시 시도하고 있어요."
+                                )
+
+                                time.sleep(
+                                    2 * (attempt + 1)
+                                )
+
+                                continue
+
+                        raise e
+
+                if response_text is None:
+                    raise last_error
+
+                message.info(
+                    "③ 결과를 정리하고 있어요."
+                )
+
+                progress.progress(80)
+
+                def extract(label, default):
+
+                    match = re.search(
+                        rf"{label}:\s*(.+)",
+                        response_text
+                    )
+
+                    if match:
+                        return match.group(1).strip()
+
+                    return default
+
+                risk = extract(
+                    "RISK",
+                    "주의"
+                )
+
+                try:
+
+                    score_match = re.search(
+                        r"SCORE:\s*(\d+)",
+                        response_text
+                    )
+
+                    score = int(
+                        score_match.group(1)
+                    )
+
+                except:
+                    score = 50
+
+                score = max(
+                    0,
+                    min(score, 100)
+                )
+
+                summary = extract(
+                    "SUMMARY",
+                    "구매 전에 한 번 더 "
+                    "확인해보세요."
+                )
+
+                types = extract(
+                    "TYPES",
+                    "구매 유도 요소"
+                )
+
+                evidence = extract(
+                    "EVIDENCE",
+                    "화면의 구매 관련 표현을 "
+                    "확인해보세요."
+                )
+
+                action = extract(
+                    "ACTION",
+                    "최종 결제 조건을 "
+                    "확인해보세요."
+                )
+
+                progress.progress(100)
+
+                time.sleep(.2)
+
+                progress.empty()
+                message.empty()
+
+                st.session_state.result = {
+                    "risk": risk,
+                    "score": score,
+                    "summary": summary,
+                    "types": types,
+                    "evidence": evidence,
+                    "action": action
+                }
+
+                st.session_state.result_product = (
+                    product.strip()
+                    if product.strip()
+                    else
+                    "구매 예정 상품"
+                )
+
+                st.session_state.result_price = int(
+                    price
+                )
+
+                st.session_state.analysis_saved = False
+
+            except Exception as e:
+
+                progress.empty()
+                message.empty()
+
+                st.error(
+                    "AI 분석 중 문제가 생겼어요."
+                )
+
+                with st.expander(
+                    "오류 정보"
+                ):
+                    st.caption(str(e))
+
+
+    # ========================================================
+    # RESULT
+    # ========================================================
+
+    if st.session_state.result is not None:
+
+        r = st.session_state.result
+
+        html("""
+        <div class="result-title">
+            체키가 확인했어요!
+        </div>
+
+        <div class="result-sub">
+            구매 전에 아래 내용을
+            한 번 확인해 보세요.
+        </div>
+        """)
+
+        risk_class = (
+            "card-red"
+            if r["risk"] in ["주의", "높음"]
+            else
+            "card-green"
+        )
+
+        html(
+            f"""
+            <div class="{risk_class}">
+
+                <div class="danger-title">
+                    ⚠️ AI 구매 화면 분석
+                </div>
+
+                <div class="card-text">
+                    <b>{r["summary"]}</b>
+                </div>
+
+                <div class="tag">
+                    {r["types"]}
+                </div>
+
+                <div class="card-text">
+                    {r["evidence"]}
+                </div>
+
+            </div>
+            """
+        )
+
+        expenses = get_expenses()
+
+        total_spending = 0
+
+        for expense in expenses:
+
+            try:
+                total_spending += int(
+                    expense.get("amount") or 0
+                )
+            except:
+                pass
+
+        html(
+            f"""
+            <div class="card-blue">
+
+                <div class="card-title">
+                    📊 나의 소비 기록
+                </div>
+
+                <div class="card-text">
+                    현재 체키에 기록한 총 소비금액은
+                    <b>{total_spending:,}원</b>이에요.
+                    <br>
+                    소비분석에서 직접 입력한 실제 기록을
+                    기준으로 표시합니다.
+                </div>
+
+            </div>
+            """
+        )
+
+        html(
+            f"""
+            <div class="card">
+
+                <div class="card-title">
+                    🛡️ 결제 전 CHECK
+                </div>
+
+                <div class="card-text">
+                    {r["action"]}
+                </div>
+
+                <div class="card-text">
+                    소비 유도 위험도 ·
+                    <b>{r["risk"]}</b>
+                </div>
+
+                <div class="score">
+                    {r["score"]}
+                    <span style="
+                    font-size:14px;
+                    color:#8996a8;
+                    ">
+                    / 100
+                    </span>
+                </div>
+
+            </div>
+            """
+        )
+
+        html(
+            '<div class="section">'
+            '구매를 계속할까요?'
+            '</div>'
+        )
+
+        if st.button(
+            "구매 계속하기",
+            type="primary",
+            use_container_width=True
+        ):
+
+            db_insert(
+                "checki_records",
+                {
+                    "user_id": USER_ID,
+                    "product_name":
+                        st.session_state.result_product,
+                    "price":
+                        st.session_state.result_price,
+                    "risk":
+                        r["risk"],
+                    "score":
+                        r["score"],
+                    "summary":
+                        r["summary"],
+                    "decision":
+                        "continue",
+                    "hold_until":
+                        None
+                }
+            )
+
+            st.session_state.result = None
+
+            st.success(
+                "구매 계속으로 기록했어요."
+            )
+
+            time.sleep(.7)
+
+            st.rerun()
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            if st.button(
+                "⏸ 30분 보류",
+                use_container_width=True
+            ):
+
+                hold_until = (
+                    datetime.now(timezone.utc)
+                    +
+                    timedelta(minutes=30)
+                )
+
+                db_insert(
+                    "checki_records",
+                    {
+                        "user_id":
+                            USER_ID,
+
+                        "product_name":
+                            st.session_state.result_product,
+
+                        "price":
+                            st.session_state.result_price,
+
+                        "risk":
+                            r["risk"],
+
+                        "score":
+                            r["score"],
+
+                        "summary":
+                            r["summary"],
+
+                        "decision":
+                            "hold",
+
+                        "hold_until":
+                            hold_until.isoformat()
+                    }
+                )
+
+                st.session_state.result = None
+
+                st.success(
+                    "30분 보류했어요. "
+                    "MY에서 확인할 수 있어요."
+                )
+
+                time.sleep(.7)
+
+                st.rerun()
+
+        with c2:
+
+            if st.button(
+                "구매하지 않기",
+                use_container_width=True
+            ):
+
+                db_insert(
+                    "checki_records",
+                    {
+                        "user_id":
+                            USER_ID,
+
+                        "product_name":
+                            st.session_state.result_product,
+
+                        "price":
+                            st.session_state.result_price,
+
+                        "risk":
+                            r["risk"],
+
+                        "score":
+                            r["score"],
+
+                        "summary":
+                            r["summary"],
+
+                        "decision":
+                            "stop",
+
+                        "hold_until":
+                            None
+                    }
+                )
+
+                amount = (
+                    st.session_state.result_price
+                )
+
+                st.session_state.result = None
+
+                if amount > 0:
+
+                    st.success(
+                        f"🎉 {amount:,}원의 소비를 "
+                        "다시 생각했어요!"
+                    )
+
+                else:
+
+                    st.success(
+                        "🎉 이번 구매를 "
+                        "다시 생각하기로 했어요!"
+                    )
+
+                time.sleep(.7)
+
+                st.rerun()
+
+
+# ============================================================
+# 소비 분석
+# ============================================================
+
+elif page == "소비분석":
+
+    html(
+        '<div class="section">'
+        '소비분석'
+        '</div>'
+    )
+
+    html("""
+    <div class="hero">
+
+        <div class="hero-badge">
+            나의 소비 기록
+        </div>
+
+        <div class="hero-title">
+            내가 쓴 돈을<br>
+            직접 확인해 보세요.
+        </div>
+
+        <div class="hero-desc">
+            체키에 입력한 실제 소비내역을 바탕으로
+            소비 패턴을 확인할 수 있어요.
+        </div>
+
+    </div>
+    """)
+
+    # --------------------------------------------------------
+    # 소비 추가
+    # --------------------------------------------------------
+
+    with st.expander(
+        "＋ 소비내역 추가하기",
+        expanded=False
+    ):
+
+        expense_name = st.text_input(
+            "구매한 상품",
+            placeholder="예: 운동화",
+            key="expense_name"
+        )
+
+        expense_category = st.selectbox(
+            "카테고리",
+            [
+                "의류",
+                "식비",
+                "뷰티",
+                "생활용품",
+                "교통",
+                "문화/여가",
+                "전자기기",
+                "기타"
+            ]
+        )
+
+        expense_amount = st.number_input(
+            "결제 금액",
+            min_value=0,
+            step=1000,
+            format="%d",
+            key="expense_amount"
+        )
+
+        expense_date = st.date_input(
+            "구매 날짜"
+        )
+
+        if st.button(
+            "소비내역 저장",
+            type="primary",
+            use_container_width=True
+        ):
+
+            if not expense_name.strip():
+
+                st.warning(
+                    "상품명을 입력해주세요."
+                )
+
+            elif expense_amount <= 0:
 
                 st.warning(
                     "결제 금액을 입력해주세요."
                 )
 
-
             else:
 
-                add_expense(
-                    purchase_data[
-                        "category"
-                    ],
-                    purchase_data[
-                        "product"
-                    ],
-                    purchase_price
-                )
-
-
-                update_record(
-                    purchase_data[
-                        "record_id"
-                    ],
+                result = db_insert(
+                    "checki_expenses",
                     {
+                        "user_id":
+                            USER_ID,
 
-                        "product_price":
-                            int(
-                                purchase_price
-                            )
+                        "product_name":
+                            expense_name.strip(),
+
+                        "category":
+                            expense_category,
+
+                        "amount":
+                            int(expense_amount),
+
+                        "expense_date":
+                            expense_date.isoformat()
                     }
                 )
 
+                if result is not None:
 
-                st.session_state.pop(
-                    "purchase_after_hold",
-                    None
-                )
+                    st.success(
+                        "소비내역을 저장했어요."
+                    )
 
+                    time.sleep(.5)
 
-                st.rerun()
-
-
-    st.divider()
+                    st.rerun()
 
 
-    # =====================================================
-    # 최근 기록
-    # =====================================================
+    # --------------------------------------------------------
+    # 실제 데이터
+    # --------------------------------------------------------
 
-    st.markdown(
-        "### 최근 구매체크"
-    )
+    expenses = get_expenses()
 
+    total = 0
 
-    if not records:
+    for item in expenses:
 
-        st.info(
-            "아직 구매체크 기록이 없어요."
+        try:
+            total += int(
+                item.get("amount") or 0
+            )
+        except:
+            pass
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        st.metric(
+            "기록한 소비",
+            f"{total:,}원"
+        )
+
+    with c2:
+
+        st.metric(
+            "구매 건수",
+            f"{len(expenses)}건"
         )
 
 
+    # --------------------------------------------------------
+    # EMPTY
+    # --------------------------------------------------------
+
+    if len(expenses) == 0:
+
+        html("""
+        <div class="card-blue">
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    📊
+                </div>
+
+                <div class="card-title">
+                    아직 소비내역이 없어요
+                </div>
+
+                <div class="card-text">
+                    위의 '소비내역 추가하기'에서
+                    첫 소비를 기록하면
+                    체키가 소비분석을 시작해요.
+                </div>
+
+            </div>
+
+        </div>
+        """)
+
     else:
 
-        for record in (
-            records[:10]
+        # ----------------------------------------------------
+        # CATEGORY
+        # ----------------------------------------------------
+
+        category_totals = {}
+
+        for item in expenses:
+
+            category = (
+                item.get("category")
+                or
+                "기타"
+            )
+
+            try:
+                amount = int(
+                    item.get("amount") or 0
+                )
+            except:
+                amount = 0
+
+            category_totals[category] = (
+                category_totals.get(
+                    category,
+                    0
+                )
+                +
+                amount
+            )
+
+        html(
+            '<div class="section">'
+            '카테고리별 소비'
+            '</div>'
+        )
+
+        max_amount = max(
+            category_totals.values()
+        )
+
+        for category, amount in sorted(
+            category_totals.items(),
+            key=lambda x: x[1],
+            reverse=True
         ):
 
-            product = (
-                record.get(
-                    "product_name"
+            if max_amount > 0:
+
+                percent = int(
+                    amount
+                    /
+                    max_amount
+                    *
+                    100
                 )
-                or "상품"
-            )
 
-            category_name = (
-                record.get(
-                    "category"
-                )
-                or "기타"
-            )
+            else:
+                percent = 0
 
-            risk = (
-                record.get(
-                    "risk_level"
-                )
-                or "-"
-            )
-
-            decision = (
-                record.get(
-                    "decision"
-                )
-                or "checking"
-            )
-
-
-            decision_text = {
-
-                "checking":
-                    "검토 중",
-
-                "hold":
-                    "30분 보류",
-
-                "abandoned":
-                    "구매 포기",
-
-                "purchased":
-                    "구매"
-
-            }.get(
-                decision,
-                decision
-            )
-
-
-            st.markdown(
+            html(
                 f"""
-<div class="info-card">
+                <div class="card">
 
-<b>{product}</b>
+                    <div class="card-title">
+                        {category}
 
-<br>
+                        <span style="
+                        float:right;
+                        ">
+                            {amount:,}원
+                        </span>
 
-<span style="color:#7a8795">
-{category_name}
-</span>
+                    </div>
 
-<br><br>
+                    <div class="progress-bg">
 
-위험도:
-<b>{risk}</b>
+                        <div
+                        class="progress-fill"
+                        style="
+                        width:{percent}%;
+                        ">
+                        </div>
 
-<br>
+                    </div>
 
-결정:
-<b>{decision_text}</b>
-
-</div>
-""",
-                unsafe_allow_html=True
+                </div>
+                """
             )
 
 
-# =========================================================
-# 21. Footer
-# =========================================================
+        # ----------------------------------------------------
+        # 가장 많이 쓴 카테고리
+        # ----------------------------------------------------
 
-st.markdown(
-    """
-<br><br>
+        biggest_category = max(
+            category_totals,
+            key=category_totals.get
+        )
 
-<div style="
-text-align:center;
-color:#9aa6b2;
-font-size:12px;
-line-height:1.8;
-">
+        biggest_amount = (
+            category_totals[
+                biggest_category
+            ]
+        )
 
-CHECKI · AI 소비 방어 도우미
+        html("""
+        <div class="section">
+            체키 소비 인사이트
+        </div>
+        """)
 
-<br>
+        html(
+            f"""
+            <div class="card-purple">
 
-구매를 막는 서비스가 아니라,
-결제 전 한 번 더 확인할 수 있도록 돕습니다.
+                <div class="card-title">
+                    💡 가장 많은 소비
+                </div>
+
+                <div class="card-text">
+                    현재 기록에서는
+                    <b>{biggest_category}</b> 카테고리의
+                    소비가 가장 많아요.
+
+                    지금까지
+                    <b>{biggest_amount:,}원</b>을
+                    기록했어요.
+                </div>
+
+            </div>
+            """
+        )
+
+
+        # ----------------------------------------------------
+        # 최근 소비
+        # ----------------------------------------------------
+
+        html(
+            '<div class="section">'
+            '최근 소비내역'
+            '</div>'
+        )
+
+        def expense_sort_key(x):
+
+            return str(
+                x.get("expense_date")
+                or
+                x.get("created_at")
+                or
+                ""
+            )
+
+        sorted_expenses = sorted(
+            expenses,
+            key=expense_sort_key,
+            reverse=True
+        )
+
+        for item in sorted_expenses[:10]:
+
+            name = (
+                item.get("product_name")
+                or
+                "상품"
+            )
+
+            category = (
+                item.get("category")
+                or
+                "기타"
+            )
+
+            amount = int(
+                item.get("amount")
+                or
+                0
+            )
+
+            date = (
+                item.get("expense_date")
+                or
+                ""
+            )
+
+            html(
+                f"""
+                <div class="card">
+
+                    <div class="card-title">
+
+                        {name}
+
+                        <span style="
+                        float:right;
+                        ">
+                            {amount:,}원
+                        </span>
+
+                    </div>
+
+                    <div class="card-text">
+                        {category} · {date}
+                    </div>
+
+                </div>
+                """
+            )
+
+
+# ============================================================
+# MY
+# ============================================================
+
+elif page == "MY":
+
+    # 새로 DB에서 통계 읽음
+
+    analysis_count, stopped_count, saved_money = (
+        get_stats()
+    )
+
+    html(
+        '<div class="section">'
+        'MY 체키'
+        '</div>'
+    )
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        st.metric(
+            "구매 체크",
+            f"{analysis_count}회"
+        )
+
+    with c2:
+
+        st.metric(
+            "구매 포기",
+            f"{stopped_count}회"
+        )
+
+    st.metric(
+        "다시 생각한 소비",
+        f"{saved_money:,}원"
+    )
+
+
+    # --------------------------------------------------------
+    # HOLD
+    # --------------------------------------------------------
+
+    hold_record, hold_datetime = (
+        get_active_hold()
+    )
+
+    if hold_record is not None:
+
+        now = datetime.now(
+            timezone.utc
+        )
+
+        remaining = (
+            hold_datetime - now
+        )
+
+        seconds = max(
+            0,
+            int(
+                remaining.total_seconds()
+            )
+        )
+
+        hours = seconds // 3600
+
+        minutes = (
+            seconds % 3600
+        ) // 60
+
+        secs = seconds % 60
+
+        product_name = (
+            hold_record.get(
+                "product_name"
+            )
+            or
+            "구매 예정 상품"
+        )
+
+        price = int(
+            hold_record.get(
+                "price"
+            )
+            or
+            0
+        )
+
+        record_id = hold_record.get(
+            "id"
+        )
+
+        html(
+            '<div class="section">'
+            '구매 보류 중'
+            '</div>'
+        )
+
+        html(
+            f"""
+            <div class="card-blue">
+
+                <div class="card-title">
+                    🔒 {product_name}
+                </div>
+
+                <div class="card-text">
+                    {price:,}원
+                </div>
+
+                <div class="timer">
+                    {hours:02d}:{minutes:02d}:{secs:02d}
+                </div>
+
+                <div
+                class="card-text"
+                style="text-align:center;"
+                >
+                    남은 고민 시간
+                </div>
+
+            </div>
+            """
+        )
+
+        st.caption(
+            "새로고침해도 보류 기록은 유지돼요."
+        )
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+
+            if st.button(
+                "구매하지 않기",
+                type="primary",
+                use_container_width=True
+            ):
+
+                db_update(
+                    "checki_records",
+                    {
+                        "decision": "stop",
+                        "hold_until": None
+                    },
+                    {
+                        "id": record_id
+                    }
+                )
+
+                st.success(
+                    "구매하지 않기로 결정했어요."
+                )
+
+                time.sleep(.5)
+
+                st.rerun()
+
+        with c2:
+
+            if st.button(
+                "구매 계속하기",
+                use_container_width=True
+            ):
+
+                db_update(
+                    "checki_records",
+                    {
+                        "decision":
+                            "continue",
+
+                        "hold_until":
+                            None
+                    },
+                    {
+                        "id":
+                            record_id
+                    }
+                )
+
+                st.success(
+                    "구매 계속으로 기록했어요."
+                )
+
+                time.sleep(.5)
+
+                st.rerun()
+
+    else:
+
+        html("""
+        <div class="card-blue">
+
+            <div class="card-title">
+                ⏸ 현재 보류 중인 구매가 없어요
+            </div>
+
+            <div class="card-text">
+                고민되는 상품은 구매체크에서
+                30분 동안 잠시 보류할 수 있어요.
+            </div>
+
+        </div>
+        """)
+
+
+    # --------------------------------------------------------
+    # 효과
+    # --------------------------------------------------------
+
+    if stopped_count > 0:
+
+        html(
+            f"""
+            <div class="card-green">
+
+                <div class="card-title">
+                    🎉 체키 효과
+                </div>
+
+                <div class="card-text">
+
+                    지금까지
+
+                    <b>{stopped_count}번</b>의 구매를
+                    다시 생각했고,
+
+                    <b>{saved_money:,}원</b>의 소비를
+                    재검토했어요.
+
+                </div>
+
+            </div>
+            """
+        )
+
+
+    # --------------------------------------------------------
+    # 내 소비 데이터
+    # --------------------------------------------------------
+
+    expenses = get_expenses()
+
+    total_expense = sum(
+        int(x.get("amount") or 0)
+        for x in expenses
+    )
+
+    html(
+        '<div class="section">'
+        '내 소비 데이터'
+        '</div>'
+    )
+
+    html(
+        f"""
+        <div class="card">
+
+            <div class="card-title">
+                📊 기록된 소비
+            </div>
+
+            <div class="card-text">
+
+                소비내역
+                <b>{len(expenses)}건</b>
+
+                <br>
+
+                총
+                <b>{total_expense:,}원</b>이
+                기록되어 있어요.
+
+            </div>
+
+        </div>
+        """
+    )
+
+
+# ============================================================
+# FOOTER
+# ============================================================
+
+html("""
+<div class="footer">
+
+    CHECKI · AI 소비자 보호 서비스 MVP
+
+    <br>
+
+    AI 분석 결과는 소비자의 판단을 돕기 위한
+    참고 정보입니다.
+
+    <br>
+
+    소비분석은 사용자가 직접 입력한 데이터를
+    기준으로 제공됩니다.
 
 </div>
-""",
-    unsafe_allow_html=True
-)
+""")
