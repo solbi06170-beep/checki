@@ -47,10 +47,6 @@ MASCOT_CHART = "checki_mascot_chart.png"
 
 
 def image_to_base64(path):
-    """
-    PNG 파일을 base64로 변환.
-    HTML 안에서 마스코트 크기와 정렬을 정확하게 통제하기 위해 사용.
-    """
     if not os.path.exists(path):
         return None
 
@@ -62,11 +58,6 @@ def image_to_base64(path):
 
 
 def show_mascot(path, size=150, extra_class=""):
-    """
-    모든 마스코트를 동일한 정사각형 슬롯 안에 표시한다.
-    원본 PNG 비율/여백이 달라도 화면상 위치와 영역이 동일하게 유지된다.
-    """
-
     encoded = image_to_base64(path)
 
     if not encoded:
@@ -89,11 +80,6 @@ def show_mascot(path, size=150, extra_class=""):
 
 
 def show_uploaded_preview(image):
-    """
-    사용자가 올린 쇼핑 스크린샷 전용 미리보기.
-    마스코트 CSS와 완전히 분리한다.
-    """
-
     try:
         img = image.copy()
 
@@ -142,8 +128,7 @@ st.markdown(
    FONT
    ===================================================== */
 
-@import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css');
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap');
 
 
@@ -193,7 +178,7 @@ footer {
 
 
 /* =====================================================
-   전체 화면
+   전체 폰트 통일
    ===================================================== */
 
 html,
@@ -213,20 +198,31 @@ select,
 label,
 p,
 span,
-div {
+div,
+small,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family:
-        "SUIT",
+        "Pretendard Variable",
         "Pretendard",
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         sans-serif !important;
+
+    letter-spacing: -0.025em;
 }
 
 .stApp {
     margin: 0 !important;
     padding: 0 !important;
     overflow-x: hidden !important;
+
+    color: var(--navy);
 
     background:
         linear-gradient(
@@ -253,6 +249,26 @@ div {
 
 
 /* =====================================================
+   STREAMLIT MARKDOWN 제목도 통일
+   ===================================================== */
+
+.stMarkdown h1,
+.stMarkdown h2,
+.stMarkdown h3,
+.stMarkdown h4 {
+    color: var(--navy) !important;
+    font-weight: 850 !important;
+    letter-spacing: -0.055em !important;
+}
+
+.stMarkdown h3 {
+    font-size: 25px !important;
+    margin-top: 25px !important;
+    margin-bottom: 14px !important;
+}
+
+
+/* =====================================================
    LOGO
    ===================================================== */
 
@@ -267,7 +283,6 @@ div {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
     gap: 9px;
 
     font-size: 32px;
@@ -279,12 +294,12 @@ div {
 .checki-brand-en {
     font-family:
         "Montserrat",
-        "SUIT",
+        "Pretendard Variable",
         sans-serif !important;
 
     color: var(--blue);
 
-    font-weight: 900;
+    font-weight: 900 !important;
 
     letter-spacing: -0.065em;
 }
@@ -292,7 +307,7 @@ div {
 .checki-divider {
     color: #BDD0DE;
 
-    font-weight: 700;
+    font-weight: 800 !important;
 
     font-size: 25px;
 }
@@ -300,7 +315,7 @@ div {
 .checki-brand-ko {
     color: var(--navy);
 
-    font-weight: 900;
+    font-weight: 900 !important;
 
     letter-spacing: -0.08em;
 }
@@ -312,12 +327,12 @@ div {
 
     font-family:
         "Montserrat",
-        "SUIT",
+        "Pretendard Variable",
         sans-serif !important;
 
     font-size: 8px;
 
-    font-weight: 800;
+    font-weight: 800 !important;
 
     letter-spacing: 0.22em;
 }
@@ -369,7 +384,9 @@ div[role="radiogroup"] label {
 
     font-weight: 700 !important;
 
-    letter-spacing: -0.03em !important;
+    letter-spacing: -0.035em !important;
+
+    color: #40586B !important;
 }
 
 
@@ -388,16 +405,18 @@ div[role="radiogroup"] label {
 .hero-title {
     color: var(--navy);
 
-    font-size: 30px;
+    font-size: 31px;
     line-height: 1.3;
 
-    font-weight: 900;
+    font-weight: 900 !important;
 
-    letter-spacing: -0.06em;
+    letter-spacing: -0.065em;
 }
 
 .hero-blue {
     color: var(--blue);
+
+    font-weight: 900 !important;
 }
 
 .hero-desc {
@@ -408,15 +427,14 @@ div[role="radiogroup"] label {
     font-size: 14px;
     line-height: 1.65;
 
-    font-weight: 500;
+    font-weight: 600 !important;
 
-    letter-spacing: -0.025em;
+    letter-spacing: -0.035em;
 }
 
 
 /* =====================================================
    MASCOT
-   모든 마스코트의 실제 표시 영역 통일
    ===================================================== */
 
 .mascot-stage {
@@ -472,32 +490,20 @@ div[role="radiogroup"] label {
         );
 }
 
-
-/* 분석 결과 위 캐릭터 */
-
 .result-mascot {
     margin-top: 18px;
     margin-bottom: 3px;
 }
-
-
-/* 30분 캐릭터 */
 
 .wait-mascot {
     margin-top: 22px;
     margin-bottom: 1px;
 }
 
-
-/* 소비분석 캐릭터 */
-
 .chart-mascot {
     margin-top: 2px;
     margin-bottom: 12px;
 }
-
-
-/* MY의 작은 캐릭터 */
 
 .my-wait-mascot {
     margin-top: 4px;
@@ -532,9 +538,9 @@ div[role="radiogroup"] label {
 
     font-size: 17px;
 
-    font-weight: 850;
+    font-weight: 850 !important;
 
-    letter-spacing: -0.04em;
+    letter-spacing: -0.045em;
 
     margin-bottom: 6px;
 }
@@ -546,21 +552,22 @@ div[role="radiogroup"] label {
 
     line-height: 1.6;
 
-    font-weight: 500;
+    font-weight: 600 !important;
 
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
 }
 
 
 /* =====================================================
-   FORM
+   FORM / LABEL
    ===================================================== */
 
 label,
-[data-testid="stWidgetLabel"] {
-    font-weight: 700 !important;
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p {
+    font-weight: 750 !important;
 
-    letter-spacing: -0.025em !important;
+    letter-spacing: -0.035em !important;
 
     color: #294154 !important;
 }
@@ -582,7 +589,17 @@ label,
 
     font-size: 14px !important;
 
+    font-weight: 600 !important;
+
     min-height: 44px !important;
+
+    color: #253D50 !important;
+}
+
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: #9BAAB6 !important;
+    font-weight: 500 !important;
 }
 
 [data-baseweb="select"] > div {
@@ -594,12 +611,19 @@ label,
         rgba(247,249,251,0.94) !important;
 
     min-height: 44px !important;
+
+    font-weight: 650 !important;
+}
+
+[data-baseweb="select"] span {
+    font-weight: 650 !important;
+    color: #334C60 !important;
 }
 
 
 /* =====================================================
    FILE UPLOADER
-   upload/upload 겹침 수정
+   upload/upload 겹침 수정 유지
    ===================================================== */
 
 [data-testid="stFileUploader"] {
@@ -618,9 +642,6 @@ label,
 
     padding: 14px 18px !important;
 }
-
-
-/* 버튼 자체 */
 
 [data-testid="stFileUploaderDropzone"] button {
     position: relative !important;
@@ -659,12 +680,6 @@ label,
     line-height: 0 !important;
 }
 
-
-/*
-Streamlit 버튼 내부의 기본 텍스트,
-아이콘, material icon 등을 모두 제거
-*/
-
 [data-testid="stFileUploaderDropzone"] button > * {
     display: none !important;
 
@@ -675,9 +690,6 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     overflow: hidden !important;
 }
-
-
-/* 버튼에 우리가 원하는 글자 하나만 출력 */
 
 [data-testid="stFileUploaderDropzone"] button::before {
     content: "사진 선택" !important;
@@ -700,7 +712,7 @@ Streamlit 버튼 내부의 기본 텍스트,
     color: #294154 !important;
 
     font-family:
-        "SUIT",
+        "Pretendard Variable",
         "Pretendard",
         sans-serif !important;
 
@@ -710,27 +722,18 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     line-height: 1 !important;
 
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.03em !important;
 
     white-space: nowrap !important;
 }
-
-
-/* 업로드 아이콘 제거 */
 
 [data-testid="stFileUploaderDropzone"] svg {
     display: none !important;
 }
 
-
-/* material icon 문자까지 제거 */
-
 [data-testid="stFileUploaderDropzone"] [data-testid="stIconMaterial"] {
     display: none !important;
 }
-
-
-/* 오른쪽 안내 문구 */
 
 [data-testid="stFileUploaderDropzoneInstructions"] {
     color: #758B9C !important;
@@ -741,19 +744,20 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     font-size: 12px !important;
 
-    font-weight: 600 !important;
+    font-weight: 650 !important;
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] small {
     color: #9AABB8 !important;
 
     font-size: 10px !important;
+
+    font-weight: 550 !important;
 }
 
 
 /* =====================================================
-   업로드한 쇼핑 스크린샷
-   마스코트와 완전히 별도
+   업로드 이미지
    ===================================================== */
 
 .preview-stage {
@@ -802,13 +806,25 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     border-radius: 13px !important;
 
+    font-family:
+        "Pretendard Variable",
+        "Pretendard",
+        sans-serif !important;
+
+    font-size: 14px !important;
+
     font-weight: 750 !important;
 
     letter-spacing:
-        -0.025em !important;
+        -0.035em !important;
 
     transition:
         all 0.15s ease !important;
+}
+
+.stButton > button p,
+.stButton > button span {
+    font-weight: 750 !important;
 }
 
 .stButton > button:hover {
@@ -850,7 +866,9 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     line-height: 1.65;
 
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+
+    font-weight: 550;
 }
 
 .result-low {
@@ -879,9 +897,16 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     font-size: 20px;
 
-    font-weight: 850;
+    font-weight: 850 !important;
 
-    letter-spacing: -0.04em;
+    letter-spacing: -0.05em;
+}
+
+.result-low b,
+.result-medium b,
+.result-high b {
+    font-weight: 800 !important;
+    color: #27465E;
 }
 
 .price-box {
@@ -899,6 +924,8 @@ Streamlit 버튼 내부의 기본 텍스트,
     color: #526E83;
 
     font-size: 13px;
+
+    font-weight: 650;
 }
 
 
@@ -917,11 +944,11 @@ Streamlit 버튼 내부의 기본 텍스트,
 .section-title {
     color: #19364D;
 
-    font-size: 19px;
+    font-size: 20px;
 
-    font-weight: 850;
+    font-weight: 850 !important;
 
-    letter-spacing: -0.045em;
+    letter-spacing: -0.055em;
 }
 
 .section-desc {
@@ -931,28 +958,99 @@ Streamlit 버튼 내부의 기본 텍스트,
 
     line-height: 1.6;
 
+    font-weight: 550;
+
     margin-top: 5px;
 }
 
 
 /* =====================================================
    METRIC
+   총 소비 / 아낀 금액 / 구매하지 않음
    ===================================================== */
 
 [data-testid="stMetric"] {
     background:
-        rgba(255,255,255,0.95);
+        rgba(255,255,255,0.97);
 
     border:
-        1px solid #E3EDF5;
+        1px solid #DDEAF3;
 
-    border-radius: 17px;
+    border-radius: 18px;
 
-    padding: 15px;
+    padding: 17px 18px !important;
+
+    min-height: 114px;
 
     box-shadow:
-        0 5px 18px
-        rgba(25,104,165,0.045);
+        0 7px 22px
+        rgba(25,104,165,0.055);
+}
+
+
+/* 라벨 */
+
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] *,
+[data-testid="stMetricLabel"] p {
+    font-family:
+        "Pretendard Variable",
+        "Pretendard",
+        sans-serif !important;
+
+    color: #526B7E !important;
+
+    font-size: 13px !important;
+
+    font-weight: 750 !important;
+
+    letter-spacing: -0.04em !important;
+}
+
+
+/* 숫자 */
+
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] *,
+[data-testid="stMetricValue"] div {
+    font-family:
+        "Pretendard Variable",
+        "Pretendard",
+        sans-serif !important;
+
+    color: #172C3F !important;
+
+    font-size: 31px !important;
+
+    line-height: 1.15 !important;
+
+    font-weight: 850 !important;
+
+    letter-spacing: -0.055em !important;
+}
+
+
+/* =====================================================
+   INFO / SUCCESS / WARNING
+   ===================================================== */
+
+[data-testid="stAlert"] {
+    border-radius: 14px !important;
+}
+
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] div {
+    font-weight: 600 !important;
+    letter-spacing: -0.03em !important;
+}
+
+
+/* =====================================================
+   NUMBER INPUT + 기타 위젯
+   ===================================================== */
+
+[data-testid="stNumberInput"] input {
+    font-weight: 650 !important;
 }
 
 
@@ -1051,6 +1149,8 @@ Streamlit 버튼 내부의 기본 텍스트,
     div[role="radiogroup"] label {
         font-size: 11.5px !important;
 
+        font-weight: 700 !important;
+
         padding:
             2px 3px !important;
     }
@@ -1071,14 +1171,11 @@ Streamlit 버튼 내부의 기본 텍스트,
     .hero-desc {
         font-size: 13px !important;
 
+        font-weight: 550 !important;
+
         margin-top: 8px !important;
     }
 
-
-    /*
-    PC에서 150px인 모든 기본 마스코트를
-    모바일에서는 125px 슬롯 안에 통일.
-    */
 
     .mascot-box {
         width: 125px !important;
@@ -1147,7 +1244,32 @@ Streamlit 버튼 내부의 기본 텍스트,
 
 
     [data-testid="stMetric"] {
-        padding: 10px !important;
+        padding: 13px 10px !important;
+
+        min-height: 98px !important;
+    }
+
+
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricLabel"] *,
+    [data-testid="stMetricLabel"] p {
+        font-size: 11px !important;
+
+        font-weight: 750 !important;
+    }
+
+
+    [data-testid="stMetricValue"],
+    [data-testid="stMetricValue"] *,
+    [data-testid="stMetricValue"] div {
+        font-size: 25px !important;
+
+        font-weight: 850 !important;
+    }
+
+
+    .stMarkdown h3 {
+        font-size: 22px !important;
     }
 }
 
@@ -2068,10 +2190,6 @@ elif page == "구매체크":
     )
 
 
-    # -----------------------------------------------------
-    # 구매체크 마스코트
-    # -----------------------------------------------------
-
     show_mascot(
         MASCOT_SCAN,
         size=150
@@ -2125,10 +2243,6 @@ elif page == "구매체크":
     product_url = None
 
 
-    # -----------------------------------------------------
-    # SCREENSHOT
-    # -----------------------------------------------------
-
     if (
         input_type
         == "스크린샷"
@@ -2165,10 +2279,6 @@ elif page == "구매체크":
             )
 
 
-    # -----------------------------------------------------
-    # LINK
-    # -----------------------------------------------------
-
     else:
 
         product_url = (
@@ -2193,10 +2303,6 @@ elif page == "구매체크":
         )
     )
 
-
-    # =====================================================
-    # 분석
-    # =====================================================
 
     if analyze_clicked:
 
@@ -2369,10 +2475,6 @@ elif page == "구매체크":
                     )
 
 
-    # =====================================================
-    # RESULT
-    # =====================================================
-
     if (
         "latest_analysis"
         in st.session_state
@@ -2512,7 +2614,7 @@ elif page == "구매체크":
                 'font-size:22px;'
                 'font-weight:850;'
                 'color:#1689F8;'
-                'letter-spacing:-0.04em;'
+                'letter-spacing:-0.05em;'
                 '">'
 
                 f'{result["price"]:,}원'
@@ -2536,10 +2638,6 @@ elif page == "구매체크":
                 "확인하지 못했어요."
             )
 
-
-        # -------------------------------------------------
-        # 30분 생각하기
-        # -------------------------------------------------
 
         show_mascot(
             MASCOT_WAIT,
@@ -2760,8 +2858,9 @@ elif page == "소비분석":
 
                 f'<div style="'
                 f'margin-top:12px;'
-                f'font-size:18px;'
-                f'font-weight:800;'
+                f'font-size:19px;'
+                f'font-weight:850;'
+                f'letter-spacing:-0.05em;'
                 f'color:#18344B;'
                 f'">'
 
@@ -2912,7 +3011,8 @@ elif page == "MY":
 
                 f'<div style="'
                 f'margin-top:12px;'
-                f'font-weight:750;'
+                f'font-weight:800;'
+                f'letter-spacing:-0.04em;'
                 f'color:#19364D;'
                 f'">'
 
@@ -2929,10 +3029,6 @@ elif page == "MY":
                 unsafe_allow_html=True
             )
 
-
-            # -------------------------------------------------
-            # HOLD
-            # -------------------------------------------------
 
             if decision == "HOLD":
 
@@ -2991,10 +3087,6 @@ elif page == "MY":
                         hold_finished = True
 
 
-                # -------------------------------------------------
-                # 아직 대기 중
-                # -------------------------------------------------
-
                 if not hold_finished:
 
                     show_mascot(
@@ -3042,10 +3134,6 @@ elif page == "MY":
                         f"{seconds_left}초 남았습니다."
                     )
 
-
-                # -------------------------------------------------
-                # 30분 종료
-                # -------------------------------------------------
 
                 else:
 
@@ -3113,10 +3201,6 @@ elif page == "MY":
                                 record_id
                             )
 
-
-                # -------------------------------------------------
-                # 실제 결제금액 입력
-                # -------------------------------------------------
 
                 if (
                     st.session_state.get(
@@ -3205,10 +3289,6 @@ elif page == "MY":
                             )
 
 
-            # -------------------------------------------------
-            # NOT BUY
-            # -------------------------------------------------
-
             elif (
                 decision
                 == "NOT_BUY"
@@ -3237,10 +3317,6 @@ elif page == "MY":
                         "구매하지 않음"
                     )
 
-
-            # -------------------------------------------------
-            # BUY
-            # -------------------------------------------------
 
             elif (
                 decision
