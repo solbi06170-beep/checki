@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
+import os
 
 
 # =========================================================
@@ -33,15 +34,42 @@ def iso_now():
 
 
 # =========================================================
-# 1. 전체 디자인
+# 1. 마스코트
+# =========================================================
+
+MASCOT_SCAN = "checki_mascot_scan.png"
+MASCOT_SEARCH = "checki_mascot_search.png"
+MASCOT_WAIT = "checki_mascot_wait.png"
+MASCOT_CHART = "checki_mascot_chart.png"
+
+
+def show_mascot(path, width=150):
+    """
+    마스코트 PNG를 가운데 정렬하여 표시.
+    파일이 아직 GitHub에 없더라도 앱 전체가 죽지 않도록 처리.
+    """
+    if os.path.exists(path):
+        left, center, right = st.columns([1, 0.8, 1])
+
+        with center:
+            st.image(path, width=width)
+
+
+# =========================================================
+# 2. 전체 디자인
 # =========================================================
 
 st.markdown(
     """
 <style>
 
+/* =====================================================
+   FONT
+   ===================================================== */
+
 @import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap');
 
 
 /* =====================================================
@@ -83,6 +111,7 @@ footer {
     visibility: hidden !important;
     height: 0 !important;
     min-height: 0 !important;
+    max-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
 }
@@ -128,7 +157,7 @@ div {
         linear-gradient(
             180deg,
             #EEF8FF 0%,
-            #F7FBFF 31%,
+            #F7FBFF 30%,
             #FFFFFF 68%
         );
 }
@@ -141,7 +170,7 @@ div {
 
 [data-testid="stMainBlockContainer"],
 .block-container {
-    padding-top: 0.4rem !important;
+    padding-top: 0.25rem !important;
     padding-bottom: 4rem !important;
     margin-top: 0 !important;
     max-width: 980px !important;
@@ -155,7 +184,7 @@ div {
 .checki-header {
     width: 100%;
     text-align: center;
-    padding: 15px 0 9px 0;
+    padding: 16px 0 8px 0;
     margin: 0;
 }
 
@@ -163,55 +192,72 @@ div {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 11px;
 
-    font-size: 31px;
+    gap: 10px;
+
+    font-size: 32px;
     line-height: 1;
 
-    font-weight: 900;
-    letter-spacing: -0.045em;
-
-    color: #172C3F;
+    letter-spacing: -0.055em;
 }
 
 .checki-brand-en {
+    font-family:
+        "Montserrat",
+        "SUIT",
+        sans-serif !important;
+
     color: #1689F8;
-    letter-spacing: -0.04em;
+
+    font-weight: 900;
+
+    letter-spacing: -0.065em;
 }
 
 .checki-divider {
-    color: #BDD0DE;
-    font-weight: 400;
+    color: #B9CDDD;
+
+    font-weight: 700;
+
+    font-size: 27px;
+
+    transform: translateY(-1px);
 }
 
 .checki-brand-ko {
+    font-family:
+        "SUIT",
+        "Pretendard",
+        sans-serif !important;
+
     color: #172C3F;
-    letter-spacing: -0.06em;
+
+    font-weight: 900;
+
+    letter-spacing: -0.085em;
 }
 
 .checki-tagline {
-    margin-top: 7px;
+    margin-top: 8px;
 
     color: #91A3B1;
 
-    font-size: 8.5px;
-    font-weight: 700;
+    font-family:
+        "Montserrat",
+        "SUIT",
+        sans-serif !important;
 
-    letter-spacing: 0.23em;
+    font-size: 8px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.22em;
 }
 
 
 /* =====================================================
    NAVIGATION
    ===================================================== */
-
-/*
-로고와 네비 사이의 Streamlit 기본 공간 제거
-*/
-
-.checki-header + div {
-    margin-top: 0 !important;
-}
 
 div[data-testid="stRadio"] {
     margin-top: 0 !important;
@@ -224,21 +270,21 @@ div[data-testid="stRadio"] > div {
 
 div[role="radiogroup"] {
     display: flex !important;
+
     justify-content: center !important;
 
     width: fit-content !important;
+
     max-width: 100% !important;
 
-    margin:
-        0 auto
-        0 auto !important;
+    margin: 0 auto !important;
 
     gap: 2px;
 
     padding: 4px 7px;
 
     background:
-        rgba(255,255,255,0.91);
+        rgba(255,255,255,0.94);
 
     border:
         1px solid #E1ECF5;
@@ -254,16 +300,16 @@ div[role="radiogroup"] label {
     flex: none !important;
 
     padding:
-        3px 5px !important;
+        3px 6px !important;
 
     font-size:
         13px !important;
 
     font-weight:
-        650 !important;
+        700 !important;
 
     letter-spacing:
-        -0.025em !important;
+        -0.03em !important;
 }
 
 
@@ -275,19 +321,20 @@ div[role="radiogroup"] label {
     text-align: center;
 
     padding:
-        43px 8px
-        20px 8px;
+        36px 8px
+        10px 8px;
 }
 
 .hero-title {
     color: var(--navy);
 
     font-size: 30px;
+
     line-height: 1.3;
 
-    font-weight: 850;
+    font-weight: 900;
 
-    letter-spacing: -0.055em;
+    letter-spacing: -0.06em;
 }
 
 .hero-blue {
@@ -295,16 +342,35 @@ div[role="radiogroup"] label {
 }
 
 .hero-desc {
-    margin-top: 12px;
+    margin-top: 10px;
 
     color: #788D9E;
 
     font-size: 14px;
+
     line-height: 1.65;
 
-    font-weight: 450;
+    font-weight: 500;
 
     letter-spacing: -0.025em;
+}
+
+
+/* =====================================================
+   마스코트 주변 Streamlit 이미지
+   ===================================================== */
+
+/*
+st.image 자체에는 전역 크기를 강제로 주지 않는다.
+각 이미지의 width는 Python에서 직접 지정한다.
+*/
+
+[data-testid="stImage"] {
+    text-align: center !important;
+}
+
+[data-testid="stImage"] img {
+    object-fit: contain !important;
 }
 
 
@@ -314,7 +380,7 @@ div[role="radiogroup"] label {
 
 .checki-card {
     background:
-        rgba(255,255,255,0.94);
+        rgba(255,255,255,0.95);
 
     border:
         1px solid var(--border);
@@ -338,10 +404,10 @@ div[role="radiogroup"] label {
 
     font-size: 17px;
 
-    font-weight: 800;
+    font-weight: 850;
 
     letter-spacing:
-        -0.035em;
+        -0.04em;
 
     margin-bottom:
         6px;
@@ -351,9 +417,10 @@ div[role="radiogroup"] label {
     color: #71899C;
 
     font-size: 13px;
+
     line-height: 1.6;
 
-    font-weight: 450;
+    font-weight: 500;
 
     letter-spacing:
         -0.02em;
@@ -366,9 +433,13 @@ div[role="radiogroup"] label {
 
 label,
 [data-testid="stWidgetLabel"] {
-    font-weight: 650 !important;
-    letter-spacing: -0.025em !important;
-    color: #294154 !important;
+    font-weight: 700 !important;
+
+    letter-spacing:
+        -0.025em !important;
+
+    color:
+        #294154 !important;
 }
 
 
@@ -386,7 +457,7 @@ label,
         #DFE9F1 !important;
 
     background:
-        rgba(247,249,251,0.92) !important;
+        rgba(247,249,251,0.94) !important;
 
     font-size:
         14px !important;
@@ -403,7 +474,7 @@ label,
         #DFE9F1 !important;
 
     background:
-        rgba(247,249,251,0.92) !important;
+        rgba(247,249,251,0.94) !important;
 
     min-height:
         44px !important;
@@ -412,15 +483,14 @@ label,
 
 /* =====================================================
    FILE UPLOADER
-   uploadUpload 깨짐 수정
+   중요:
+   가짜 ::after 글자를 완전히 제거.
+   Streamlit 원래 버튼을 그대로 사용.
    ===================================================== */
 
 [data-testid="stFileUploader"] {
     border-radius:
         16px !important;
-
-    overflow:
-        hidden !important;
 }
 
 [data-testid="stFileUploaderDropzone"] {
@@ -428,153 +498,83 @@ label,
         #F7F9FB !important;
 
     border:
-        1px solid #E1E9F0 !important;
+        1px dashed #CBDCE9 !important;
 
     border-radius:
         16px !important;
 
     min-height:
-        90px !important;
+        92px !important;
 
     padding:
         15px 18px !important;
 }
 
 
-/* Dropzone 내부 레이아웃 */
+/*
+기존 코드의
+button { font-size:0 }
+button::after { content:"사진 선택" }
+부분을 삭제했다.
 
-[data-testid="stFileUploaderDropzone"] > div {
-    display:
-        flex !important;
-
-    align-items:
-        center !important;
-
-    gap:
-        12px !important;
-}
-
-
-/* 기본 설명 글씨 */
-
-[data-testid="stFileUploaderDropzoneInstructions"] {
-    display:
-        none !important;
-}
-
-
-/* Browse files 버튼 */
+따라서 uploadUpload사진 선택 겹침이 발생하지 않는다.
+*/
 
 [data-testid="stFileUploaderDropzone"] button {
-    font-size:
-        0 !important;
-
-    width:
-        auto !important;
-
     min-width:
-        105px !important;
+        100px !important;
 
-    height:
-        42px !important;
+    min-height:
+        40px !important;
 
     padding:
-        0 18px !important;
+        0 15px !important;
 
     border-radius:
-        12px !important;
+        11px !important;
 
     background:
-        white !important;
+        #FFFFFF !important;
 
     border:
-        1px solid #D7E2EB !important;
+        1px solid #D6E3ED !important;
 
     color:
         #294154 !important;
 
-    box-shadow:
-        none !important;
-}
-
-
-/* 버튼 글자 직접 생성 */
-
-[data-testid="stFileUploaderDropzone"] button::after {
-    content:
-        "사진 선택";
-
-    font-family:
-        "SUIT",
-        "Pretendard",
-        sans-serif;
-
     font-size:
-        13px;
+        12px !important;
 
     font-weight:
-        700;
-
-    color:
-        #294154;
-}
-
-
-/* 파일 제한 문구 */
-
-[data-testid="stFileUploaderDropzone"]::after {
-    content:
-        "PNG · JPG · WEBP  /  최대 200MB";
-
-    color:
-        #8799A8;
-
-    font-size:
-        12px;
-
-    font-weight:
-        500;
-
-    white-space:
-        nowrap;
-}
-
-
-/* =====================================================
-   업로드 이미지
-   ===================================================== */
-
-[data-testid="stImage"] {
-    text-align:
-        center !important;
-}
-
-[data-testid="stImage"] img {
-    display:
-        block !important;
-
-    width:
-        auto !important;
-
-    height:
-        auto !important;
-
-    max-width:
-        340px !important;
-
-    object-fit:
-        contain !important;
-
-    margin:
-        10px auto
-        15px auto !important;
-
-    border-radius:
-        16px !important;
+        700 !important;
 
     box-shadow:
-        0 6px 20px
-        rgba(22,83,132,0.09);
+        0 3px 10px
+        rgba(37,91,130,0.04) !important;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    color:
+        #758B9C !important;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] span {
+    color:
+        #758B9C !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        600 !important;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] small {
+    color:
+        #9AABB8 !important;
+
+    font-size:
+        11px !important;
 }
 
 
@@ -590,7 +590,7 @@ label,
         13px !important;
 
     font-weight:
-        720 !important;
+        750 !important;
 
     letter-spacing:
         -0.025em !important;
@@ -711,6 +711,43 @@ label,
 
 
 /* =====================================================
+   SECTION
+   ===================================================== */
+
+.section-center {
+    text-align: center;
+
+    margin:
+        4px 0 10px 0;
+}
+
+.section-title {
+    color:
+        #19364D;
+
+    font-size:
+        19px;
+
+    font-weight:
+        850;
+
+    letter-spacing:
+        -0.045em;
+}
+
+.section-desc {
+    color:
+        #7A90A1;
+
+    font-size:
+        13px;
+
+    margin-top:
+        5px;
+}
+
+
+/* =====================================================
    METRIC
    ===================================================== */
 
@@ -797,7 +834,7 @@ label,
             0 !important;
 
         padding-top:
-            0.05rem !important;
+            0 !important;
 
         padding-left:
             0.9rem !important;
@@ -809,17 +846,23 @@ label,
 
     .checki-header {
         padding:
-            11px 0
-            7px 0 !important;
+            10px 0
+            6px 0 !important;
     }
 
 
     .checki-brand {
         font-size:
-            27px !important;
+            28px !important;
 
         gap:
-            8px !important;
+            7px !important;
+    }
+
+
+    .checki-divider {
+        font-size:
+            22px !important;
     }
 
 
@@ -828,7 +871,7 @@ label,
             6px !important;
 
         font-size:
-            7.5px !important;
+            7px !important;
     }
 
 
@@ -852,8 +895,8 @@ label,
 
     .hero {
         padding:
-            31px 5px
-            16px 5px !important;
+            28px 5px
+            8px 5px !important;
     }
 
 
@@ -868,7 +911,7 @@ label,
             13px !important;
 
         margin-top:
-            9px !important;
+            8px !important;
     }
 
 
@@ -883,7 +926,7 @@ label,
 
     [data-testid="stFileUploaderDropzone"] {
         min-height:
-            82px !important;
+            85px !important;
 
         padding:
             12px !important;
@@ -892,31 +935,28 @@ label,
 
     [data-testid="stFileUploaderDropzone"] button {
         min-width:
-            90px !important;
+            86px !important;
+
+        min-height:
+            38px !important;
 
         padding:
-            0 13px !important;
-    }
-
-
-    [data-testid="stFileUploaderDropzone"]::after {
-        content:
-            "PNG · JPG · WEBP";
+            0 10px !important;
 
         font-size:
-            11px;
+            11px !important;
     }
 
 
-    [data-testid="stImage"] img {
-        max-width:
-            245px !important;
+    [data-testid="stFileUploaderDropzoneInstructions"] span {
+        font-size:
+            11px !important;
+    }
 
-        width:
-            auto !important;
 
-        height:
-            auto !important;
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
+        font-size:
+            9px !important;
     }
 
 
@@ -933,7 +973,7 @@ label,
 
 
 # =========================================================
-# 2. SECRETS
+# 3. SECRETS
 # =========================================================
 
 try:
@@ -950,7 +990,7 @@ except Exception:
 
 
 # =========================================================
-# 3. GEMINI
+# 4. GEMINI
 # =========================================================
 
 try:
@@ -963,7 +1003,7 @@ except Exception:
 
 
 # =========================================================
-# 4. SUPABASE
+# 5. SUPABASE
 # =========================================================
 
 if "supabase_client" not in st.session_state:
@@ -982,7 +1022,7 @@ supabase = st.session_state["supabase_client"]
 
 
 # =========================================================
-# 5. USER ID
+# 6. USER ID
 # =========================================================
 
 if "user_id" not in st.session_state:
@@ -1000,9 +1040,7 @@ if "user_id" not in st.session_state:
 
         else:
 
-            uid = str(
-                uuid.uuid4()
-            )
+            uid = str(uuid.uuid4())
 
             st.session_state["user_id"] = uid
 
@@ -1019,7 +1057,7 @@ user_id = st.session_state["user_id"]
 
 
 # =========================================================
-# 6. DATABASE
+# 7. DATABASE
 # =========================================================
 
 def get_expenses():
@@ -1092,17 +1130,10 @@ def add_expense(
     try:
 
         data = {
-            "user_id":
-                user_id,
-
-            "category":
-                category,
-
-            "item_name":
-                item_name,
-
-            "amount":
-                int(amount),
+            "user_id": user_id,
+            "category": category,
+            "item_name": item_name,
+            "amount": int(amount),
 
             "purchased_at":
                 now_kst()
@@ -1196,16 +1227,13 @@ def save_analysis_record(
                 0,
 
             "hold_started_at":
-                hold_started
-                .isoformat(),
+                hold_started.isoformat(),
 
             "hold_until":
-                hold_until
-                .isoformat(),
+                hold_until.isoformat(),
 
             "created_at":
-                hold_started
-                .isoformat()
+                hold_started.isoformat()
         }
 
         response = (
@@ -1272,7 +1300,7 @@ def update_record(
 
 
 # =========================================================
-# 7. URL 읽기
+# 8. URL 읽기
 # =========================================================
 
 def read_url(url):
@@ -1362,7 +1390,7 @@ def read_url(url):
 
 
 # =========================================================
-# 8. GEMINI RETRY
+# 9. GEMINI RETRY
 # =========================================================
 
 def generate_with_retry(
@@ -1378,9 +1406,7 @@ def generate_with_retry(
 
     last_error = None
 
-    for i in range(
-        retries
-    ):
+    for i in range(retries):
 
         try:
 
@@ -1406,20 +1432,11 @@ def generate_with_retry(
             )
 
             retryable = (
-                "503"
-                in msg
-
-                or "unavailable"
-                in msg
-
-                or "high demand"
-                in msg
-
-                or "429"
-                in msg
-
-                or "resource exhausted"
-                in msg
+                "503" in msg
+                or "unavailable" in msg
+                or "high demand" in msg
+                or "429" in msg
+                or "resource exhausted" in msg
             )
 
             if (
@@ -1439,7 +1456,7 @@ def generate_with_retry(
 
 
 # =========================================================
-# 9. PARSING
+# 10. PARSING
 # =========================================================
 
 def parse_field(
@@ -1514,7 +1531,7 @@ def parse_score(value):
 
 
 # =========================================================
-# 10. AI ANALYSIS
+# 11. AI ANALYSIS
 # =========================================================
 
 def analyze_product(
@@ -1696,7 +1713,7 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
 
 
 # =========================================================
-# 11. LOGO
+# 12. LOGO
 # =========================================================
 
 header_html = (
@@ -1717,7 +1734,7 @@ st.markdown(
 
 
 # =========================================================
-# 12. NAVIGATION
+# 13. NAVIGATION
 # =========================================================
 
 page = st.radio(
@@ -1738,7 +1755,7 @@ page = st.radio(
 
 
 # =========================================================
-# 13. HOME
+# 14. HOME
 # =========================================================
 
 if page == "홈":
@@ -1746,8 +1763,11 @@ if page == "홈":
     hero_html = (
         '<div class="hero">'
         '<div class="hero-title">'
-        '사기 전에, <span class="hero-blue">체키</span> 해보세요.'
+        '사기 전에, '
+        '<span class="hero-blue">체키</span> '
+        '해보세요.'
         '</div>'
+
         '<div class="hero-desc">'
         '쇼핑 화면이나 링크를 분석해<br>'
         '나도 모르게 구매를 유도하는 요소를 찾아드려요.'
@@ -1760,6 +1780,9 @@ if page == "홈":
         unsafe_allow_html=True
     )
 
+
+    # 홈에서는 별도 main 마스코트를 사용하지 않는다.
+    # 대신 서비스 기능을 깔끔하게 보여준다.
 
     cards_html = (
         '<div class="checki-card">'
@@ -1794,7 +1817,7 @@ if page == "홈":
 
 
 # =========================================================
-# 14. 구매체크
+# 15. 구매체크
 # =========================================================
 
 elif page == "구매체크":
@@ -1802,8 +1825,10 @@ elif page == "구매체크":
     purchase_hero = (
         '<div class="hero">'
         '<div class="hero-title">'
-        '구매 전 <span class="hero-blue">체키</span>'
+        '구매 전 '
+        '<span class="hero-blue">체키</span>'
         '</div>'
+
         '<div class="hero-desc">'
         '쇼핑 화면을 캡처하거나 상품 링크를 넣어주세요.'
         '</div>'
@@ -1813,6 +1838,16 @@ elif page == "구매체크":
     st.markdown(
         purchase_hero,
         unsafe_allow_html=True
+    )
+
+
+    # -----------------------------------------------------
+    # 구매체크 기본 마스코트
+    # -----------------------------------------------------
+
+    show_mascot(
+        MASCOT_SCAN,
+        width=135
     )
 
 
@@ -1909,11 +1944,20 @@ elif page == "구매체크":
             )
 
 
-            st.image(
-                uploaded_image,
-                width=
-                    preview_width
+            # 쇼핑 스크린샷 미리보기
+            left, center, right = (
+                st.columns(
+                    [1, 1.5, 1]
+                )
             )
+
+            with center:
+
+                st.image(
+                    uploaded_image,
+                    width=
+                        preview_width
+                )
 
 
     # -----------------------------------------------------
@@ -2140,6 +2184,13 @@ elif page == "구매체크":
         )
 
 
+        # 분석 완료용 돋보기 마스코트
+        show_mascot(
+            MASCOT_SEARCH,
+            width=145
+        )
+
+
         level = (
             result[
                 "risk_level"
@@ -2228,13 +2279,16 @@ elif page == "구매체크":
                 '<div class="price-box">'
                 'AI가 화면에서 확인한 가격'
                 '<br>'
+
                 '<span style="'
                 'font-size:22px;'
                 'font-weight:850;'
                 'color:#1689F8;'
                 'letter-spacing:-0.04em;'
                 '">'
+
                 f'{result["price"]:,}원'
+
                 '</span>'
                 '</div>'
             )
@@ -2254,14 +2308,36 @@ elif page == "구매체크":
             )
 
 
+        # -------------------------------------------------
+        # 30분 생각하기
+        # -------------------------------------------------
+
         st.markdown(
-            "### ⏱️ 30분 생각하기"
+            "<br>",
+            unsafe_allow_html=True
         )
 
 
-        st.caption(
-            "바로 결제하기 전에 잠시 멈춰 "
-            "정말 필요한 구매인지 다시 생각해보세요."
+        show_mascot(
+            MASCOT_WAIT,
+            width=130
+        )
+
+
+        st.markdown(
+            """
+            <div class="section-center">
+                <div class="section-title">
+                    30분 생각하기
+                </div>
+
+                <div class="section-desc">
+                    바로 결제하기 전에 잠시 멈춰
+                    정말 필요한 소비인지 다시 생각해보세요.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
 
@@ -2282,7 +2358,7 @@ elif page == "구매체크":
 
 
 # =========================================================
-# 15. 소비분석
+# 16. 소비분석
 # =========================================================
 
 elif page == "소비분석":
@@ -2290,8 +2366,10 @@ elif page == "소비분석":
     analysis_hero = (
         '<div class="hero">'
         '<div class="hero-title">'
-        '나의 <span class="hero-blue">소비 분석</span>'
+        '나의 '
+        '<span class="hero-blue">소비 분석</span>'
         '</div>'
+
         '<div class="hero-desc">'
         '체키에 저장된 실제 소비 기록을 기준으로 확인합니다.'
         '</div>'
@@ -2302,6 +2380,16 @@ elif page == "소비분석":
     st.markdown(
         analysis_hero,
         unsafe_allow_html=True
+    )
+
+
+    # -----------------------------------------------------
+    # 소비분석 마스코트
+    # -----------------------------------------------------
+
+    show_mascot(
+        MASCOT_CHART,
+        width=145
     )
 
 
@@ -2445,7 +2533,9 @@ elif page == "소비분석":
                 f'font-weight:800;'
                 f'color:#18344B;'
                 f'">'
+
                 f'{amount:,}원'
+
                 f'</div>'
 
                 '</div>'
@@ -2459,7 +2549,7 @@ elif page == "소비분석":
 
 
 # =========================================================
-# 16. MY
+# 17. MY
 # =========================================================
 
 elif page == "MY":
@@ -2467,8 +2557,10 @@ elif page == "MY":
     my_hero = (
         '<div class="hero">'
         '<div class="hero-title">'
-        '나의 <span class="hero-blue">체키 기록</span>'
+        '나의 '
+        '<span class="hero-blue">체키 기록</span>'
         '</div>'
+
         '<div class="hero-desc">'
         '구매하기 전 한 번 멈춰본 기록을 확인해보세요.'
         '</div>'
@@ -2578,7 +2670,9 @@ elif page == "MY":
                 f'font-weight:750;'
                 f'color:#19364D;'
                 f'">'
+
                 f'{price_text}'
+
                 f'</div>'
 
                 '</div>'
@@ -2649,13 +2743,18 @@ elif page == "MY":
 
                     except Exception:
 
-                        hold_finished = (
-                            True
-                        )
+                        hold_finished = True
 
 
-                # 아직 대기 중
+                # 아직 30분 대기 중
                 if not hold_finished:
+
+                    # 보류 중인 기록에만 wait 마스코트 표시
+                    show_mascot(
+                        MASCOT_WAIT,
+                        width=105
+                    )
+
 
                     remaining = (
                         hold_until
@@ -2695,7 +2794,10 @@ elif page == "MY":
                     )
 
 
+                # -------------------------------------------------
                 # 30분 종료
+                # -------------------------------------------------
+
                 else:
 
                     st.write(
@@ -2763,7 +2865,10 @@ elif page == "MY":
                             )
 
 
+                # -------------------------------------------------
                 # 실제 결제금액
+                # -------------------------------------------------
+
                 if (
                     st.session_state.get(
                         "buy_record"
