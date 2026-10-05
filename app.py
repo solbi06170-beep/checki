@@ -15,7 +15,7 @@ import time
 # =========================================================
 
 st.set_page_config(
-    page_title="체키 | CHECKI",
+    page_title="CHECKI | 체키",
     page_icon="🔎",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -39,19 +39,30 @@ def iso_now():
 st.markdown(
     """
 <style>
+
+@import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
+
+/* =====================================================
+   COLOR
+   ===================================================== */
+
 :root {
-    --checki-blue: #1689F8;
-    --checki-blue2: #42AAFF;
-    --checki-dark: #172C3F;
-    --checki-text: #526D82;
-    --checki-muted: #7890A3;
-    --checki-border: #E1EDF6;
-    --checki-bg: #F7FBFF;
+    --blue: #1689F8;
+    --blue2: #42AAFF;
+    --navy: #172C3F;
+    --text: #526D82;
+    --muted: #8194A5;
+    --border: #E2EDF6;
+    --background: #F8FBFE;
 }
 
-/* Streamlit 기본 상단 UI 제거 */
+
+/* =====================================================
+   STREAMLIT 기본 UI 제거
+   ===================================================== */
+
 [data-testid="stHeader"],
 [data-testid="stToolbar"],
 [data-testid="stDecoration"],
@@ -72,11 +83,15 @@ footer {
     visibility: hidden !important;
     height: 0 !important;
     min-height: 0 !important;
-    margin: 0 !important;
     padding: 0 !important;
+    margin: 0 !important;
 }
 
-/* 전체 */
+
+/* =====================================================
+   전체
+   ===================================================== */
+
 html,
 body {
     margin: 0 !important;
@@ -95,335 +110,822 @@ label,
 p,
 span,
 div {
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    font-family:
+        "SUIT",
+        "Pretendard",
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif !important;
 }
 
 .stApp {
     margin: 0 !important;
     padding: 0 !important;
     overflow-x: hidden !important;
-    background: linear-gradient(180deg, #EDF8FF 0%, #F7FBFF 36%, #FFFFFF 100%);
+
+    background:
+        linear-gradient(
+            180deg,
+            #EEF8FF 0%,
+            #F7FBFF 31%,
+            #FFFFFF 68%
+        );
 }
 
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"] {
-    margin-top: 0 !important;
     padding-top: 0 !important;
+    margin-top: 0 !important;
 }
 
 [data-testid="stMainBlockContainer"],
 .block-container {
-    margin-top: 0 !important;
-    padding-top: 0.35rem !important;
+    padding-top: 0.4rem !important;
     padding-bottom: 4rem !important;
+    margin-top: 0 !important;
     max-width: 980px !important;
 }
 
-/* 로고 */
+
+/* =====================================================
+   LOGO
+   ===================================================== */
+
 .checki-header {
+    width: 100%;
     text-align: center;
-    padding: 7px 0 12px 0;
+    padding: 15px 0 9px 0;
     margin: 0;
 }
 
-.checki-logo {
-    font-size: 37px;
+.checki-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+
+    font-size: 31px;
     line-height: 1;
+
     font-weight: 900;
-    letter-spacing: -0.065em;
-    color: var(--checki-blue);
+    letter-spacing: -0.045em;
+
+    color: #172C3F;
 }
 
-.checki-subtitle {
+.checki-brand-en {
+    color: #1689F8;
+    letter-spacing: -0.04em;
+}
+
+.checki-divider {
+    color: #BDD0DE;
+    font-weight: 400;
+}
+
+.checki-brand-ko {
+    color: #172C3F;
+    letter-spacing: -0.06em;
+}
+
+.checki-tagline {
     margin-top: 7px;
-    color: #7893A8;
-    font-size: 9.5px;
-    line-height: 1.2;
-    font-weight: 750;
-    letter-spacing: 0.19em;
+
+    color: #91A3B1;
+
+    font-size: 8.5px;
+    font-weight: 700;
+
+    letter-spacing: 0.23em;
 }
 
-/* Hero */
+
+/* =====================================================
+   NAVIGATION
+   ===================================================== */
+
+/*
+로고와 네비 사이의 Streamlit 기본 공간 제거
+*/
+
+.checki-header + div {
+    margin-top: 0 !important;
+}
+
+div[data-testid="stRadio"] {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+div[data-testid="stRadio"] > div {
+    margin-top: 0 !important;
+}
+
+div[role="radiogroup"] {
+    display: flex !important;
+    justify-content: center !important;
+
+    width: fit-content !important;
+    max-width: 100% !important;
+
+    margin:
+        0 auto
+        0 auto !important;
+
+    gap: 2px;
+
+    padding: 4px 7px;
+
+    background:
+        rgba(255,255,255,0.91);
+
+    border:
+        1px solid #E1ECF5;
+
+    border-radius: 999px;
+
+    box-shadow:
+        0 5px 18px
+        rgba(25, 91, 142, 0.055);
+}
+
+div[role="radiogroup"] label {
+    flex: none !important;
+
+    padding:
+        3px 5px !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        650 !important;
+
+    letter-spacing:
+        -0.025em !important;
+}
+
+
+/* =====================================================
+   HERO
+   ===================================================== */
+
 .hero {
     text-align: center;
-    padding: 27px 8px 20px 8px;
+
+    padding:
+        43px 8px
+        20px 8px;
 }
 
 .hero-title {
-    color: var(--checki-dark);
-    font-size: 29px;
-    line-height: 1.34;
+    color: var(--navy);
+
+    font-size: 30px;
+    line-height: 1.3;
+
     font-weight: 850;
-    letter-spacing: -0.045em;
+
+    letter-spacing: -0.055em;
 }
 
 .hero-blue {
-    color: var(--checki-blue);
+    color: var(--blue);
 }
 
 .hero-desc {
-    margin-top: 11px;
-    color: #71879A;
+    margin-top: 12px;
+
+    color: #788D9E;
+
     font-size: 14px;
-    line-height: 1.7;
+    line-height: 1.65;
+
     font-weight: 450;
-    letter-spacing: -0.018em;
+
+    letter-spacing: -0.025em;
 }
 
-/* 카드 */
+
+/* =====================================================
+   CARD
+   ===================================================== */
+
 .checki-card {
-    background: rgba(255,255,255,0.94);
-    border: 1px solid var(--checki-border);
-    border-radius: 21px;
-    padding: 20px;
-    margin: 12px 0;
-    box-shadow: 0 8px 27px rgba(24, 96, 151, 0.06);
+    background:
+        rgba(255,255,255,0.94);
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        20px;
+
+    padding:
+        20px;
+
+    margin:
+        12px 0;
+
+    box-shadow:
+        0 8px 27px
+        rgba(24,96,151,0.055);
 }
 
 .card-title {
     color: #19364D;
+
     font-size: 17px;
-    font-weight: 780;
-    letter-spacing: -0.028em;
-    margin-bottom: 6px;
+
+    font-weight: 800;
+
+    letter-spacing:
+        -0.035em;
+
+    margin-bottom:
+        6px;
 }
 
 .card-desc {
     color: #71899C;
+
     font-size: 13px;
-    line-height: 1.62;
+    line-height: 1.6;
+
     font-weight: 450;
-    letter-spacing: -0.015em;
+
+    letter-spacing:
+        -0.02em;
 }
 
-/* 결과 */
-.result-low,
-.result-medium,
-.result-high {
-    border-radius: 20px;
-    padding: 20px;
-    margin-top: 17px;
-    line-height: 1.65;
-    letter-spacing: -0.015em;
+
+/* =====================================================
+   FORM LABEL
+   ===================================================== */
+
+label,
+[data-testid="stWidgetLabel"] {
+    font-weight: 650 !important;
+    letter-spacing: -0.025em !important;
+    color: #294154 !important;
 }
 
-.result-low {
-    background: #EFFBF5;
-    border: 1px solid #C8EEDB;
-}
 
-.result-medium {
-    background: #FFF9E9;
-    border: 1px solid #F3DEA1;
-}
+/* =====================================================
+   INPUT
+   ===================================================== */
 
-.result-high {
-    background: #FFF1F1;
-    border: 1px solid #F2C5C5;
-}
-
-.risk-title {
-    color: #18344B;
-    font-size: 20px;
-    font-weight: 850;
-    letter-spacing: -0.035em;
-}
-
-.price-box {
-    background: #F1F8FF;
-    border: 1px solid #D8EAFB;
-    border-radius: 16px;
-    padding: 15px 17px;
-    margin: 12px 0;
-    color: #526E83;
-    font-size: 13px;
-}
-
-/* 입력 */
 .stTextInput input,
 .stNumberInput input,
 .stTextArea textarea {
-    border-radius: 14px !important;
-    border-color: #DCE8F1 !important;
-    font-size: 14px !important;
+    border-radius:
+        13px !important;
+
+    border-color:
+        #DFE9F1 !important;
+
+    background:
+        rgba(247,249,251,0.92) !important;
+
+    font-size:
+        14px !important;
+
+    min-height:
+        44px !important;
 }
 
 [data-baseweb="select"] > div {
-    border-radius: 14px !important;
+    border-radius:
+        13px !important;
+
+    border-color:
+        #DFE9F1 !important;
+
+    background:
+        rgba(247,249,251,0.92) !important;
+
+    min-height:
+        44px !important;
 }
 
-/* 버튼 */
+
+/* =====================================================
+   FILE UPLOADER
+   uploadUpload 깨짐 수정
+   ===================================================== */
+
+[data-testid="stFileUploader"] {
+    border-radius:
+        16px !important;
+
+    overflow:
+        hidden !important;
+}
+
+[data-testid="stFileUploaderDropzone"] {
+    background:
+        #F7F9FB !important;
+
+    border:
+        1px solid #E1E9F0 !important;
+
+    border-radius:
+        16px !important;
+
+    min-height:
+        90px !important;
+
+    padding:
+        15px 18px !important;
+}
+
+
+/* Dropzone 내부 레이아웃 */
+
+[data-testid="stFileUploaderDropzone"] > div {
+    display:
+        flex !important;
+
+    align-items:
+        center !important;
+
+    gap:
+        12px !important;
+}
+
+
+/* 기본 설명 글씨 */
+
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    display:
+        none !important;
+}
+
+
+/* Browse files 버튼 */
+
+[data-testid="stFileUploaderDropzone"] button {
+    font-size:
+        0 !important;
+
+    width:
+        auto !important;
+
+    min-width:
+        105px !important;
+
+    height:
+        42px !important;
+
+    padding:
+        0 18px !important;
+
+    border-radius:
+        12px !important;
+
+    background:
+        white !important;
+
+    border:
+        1px solid #D7E2EB !important;
+
+    color:
+        #294154 !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* 버튼 글자 직접 생성 */
+
+[data-testid="stFileUploaderDropzone"] button::after {
+    content:
+        "사진 선택";
+
+    font-family:
+        "SUIT",
+        "Pretendard",
+        sans-serif;
+
+    font-size:
+        13px;
+
+    font-weight:
+        700;
+
+    color:
+        #294154;
+}
+
+
+/* 파일 제한 문구 */
+
+[data-testid="stFileUploaderDropzone"]::after {
+    content:
+        "PNG · JPG · WEBP  /  최대 200MB";
+
+    color:
+        #8799A8;
+
+    font-size:
+        12px;
+
+    font-weight:
+        500;
+
+    white-space:
+        nowrap;
+}
+
+
+/* =====================================================
+   업로드 이미지
+   ===================================================== */
+
+[data-testid="stImage"] {
+    text-align:
+        center !important;
+}
+
+[data-testid="stImage"] img {
+    display:
+        block !important;
+
+    width:
+        auto !important;
+
+    height:
+        auto !important;
+
+    max-width:
+        340px !important;
+
+    object-fit:
+        contain !important;
+
+    margin:
+        10px auto
+        15px auto !important;
+
+    border-radius:
+        16px !important;
+
+    box-shadow:
+        0 6px 20px
+        rgba(22,83,132,0.09);
+}
+
+
+/* =====================================================
+   BUTTON
+   ===================================================== */
+
 .stButton > button {
-    min-height: 46px !important;
-    border-radius: 14px !important;
-    font-weight: 720 !important;
-    letter-spacing: -0.02em !important;
-    transition: transform 0.15s ease, opacity 0.15s ease !important;
+    min-height:
+        47px !important;
+
+    border-radius:
+        13px !important;
+
+    font-weight:
+        720 !important;
+
+    letter-spacing:
+        -0.025em !important;
+
+    transition:
+        all 0.15s ease !important;
 }
 
 .stButton > button:hover {
-    transform: translateY(-1px);
+    transform:
+        translateY(-1px);
 }
 
 .stButton > button[kind="primary"],
 .stButton > button[data-testid="stBaseButton-primary"] {
-    background: linear-gradient(135deg, #1689F8, #42AAFF) !important;
-    color: white !important;
-    border: none !important;
-    box-shadow: 0 5px 15px rgba(22,137,248,0.20) !important;
+    background:
+        linear-gradient(
+            135deg,
+            #1689F8,
+            #42AAFF
+        ) !important;
+
+    color:
+        white !important;
+
+    border:
+        none !important;
+
+    box-shadow:
+        0 6px 17px
+        rgba(22,137,248,0.20) !important;
 }
 
-.stButton > button[kind="primary"]:hover,
-.stButton > button[data-testid="stBaseButton-primary"]:hover {
-    background: linear-gradient(135deg, #087EF0, #319EF8) !important;
-    color: white !important;
+
+/* =====================================================
+   RESULT
+   ===================================================== */
+
+.result-low,
+.result-medium,
+.result-high {
+    border-radius:
+        19px;
+
+    padding:
+        20px;
+
+    margin-top:
+        17px;
+
+    line-height:
+        1.65;
+
+    letter-spacing:
+        -0.02em;
 }
 
-/* 네비게이션 */
-div[role="radiogroup"] {
-    display: flex;
-    justify-content: center;
-    gap: 2px;
-    background: rgba(255,255,255,0.95);
-    border: 1px solid #E1ECF5;
-    border-radius: 17px;
-    padding: 5px;
-    box-shadow: 0 4px 18px rgba(26,111,175,0.045);
+.result-low {
+    background:
+        #EFFBF5;
+
+    border:
+        1px solid #C8EEDB;
 }
 
-div[role="radiogroup"] label {
-    flex: 1;
-    justify-content: center;
-    font-weight: 650;
+.result-medium {
+    background:
+        #FFF9E9;
+
+    border:
+        1px solid #F3DEA1;
 }
 
-/* Metric */
+.result-high {
+    background:
+        #FFF1F1;
+
+    border:
+        1px solid #F2C5C5;
+}
+
+.risk-title {
+    color:
+        #18344B;
+
+    font-size:
+        20px;
+
+    font-weight:
+        850;
+
+    letter-spacing:
+        -0.04em;
+}
+
+.price-box {
+    background:
+        #F1F8FF;
+
+    border:
+        1px solid #D8EAFB;
+
+    border-radius:
+        15px;
+
+    padding:
+        15px 17px;
+
+    margin:
+        12px 0;
+
+    color:
+        #526E83;
+
+    font-size:
+        13px;
+}
+
+
+/* =====================================================
+   METRIC
+   ===================================================== */
+
 [data-testid="stMetric"] {
-    background: rgba(255,255,255,0.94);
-    border: 1px solid #E3EDF5;
-    border-radius: 18px;
-    padding: 15px;
-    box-shadow: 0 5px 18px rgba(25,104,165,0.05);
+    background:
+        rgba(255,255,255,0.94);
+
+    border:
+        1px solid #E3EDF5;
+
+    border-radius:
+        17px;
+
+    padding:
+        15px;
+
+    box-shadow:
+        0 5px 18px
+        rgba(25,104,165,0.045);
 }
 
-/* 업로드 이미지 */
-[data-testid="stImage"] {
-    text-align: center !important;
-}
 
-[data-testid="stImage"] img {
-    max-width: 360px !important;
-    width: auto !important;
-    height: auto !important;
-    object-fit: contain !important;
-    display: block !important;
-    margin: 8px auto 15px auto !important;
-    border-radius: 17px !important;
-    box-shadow: 0 5px 20px rgba(24,91,143,0.08);
-}
+/* =====================================================
+   MOBILE
+   ===================================================== */
 
-/* 파일 업로더 */
-[data-testid="stFileUploader"] {
-    background: rgba(255,255,255,0.60);
-    border-radius: 18px;
-}
-
-/* 모바일 */
 @media (max-width: 768px) {
+
     [data-testid="stHeader"],
     [data-testid="stToolbar"],
     [data-testid="stDecoration"],
     [data-testid="stStatusWidget"],
     header {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        max-height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        display:
+            none !important;
+
+        visibility:
+            hidden !important;
+
+        height:
+            0 !important;
+
+        min-height:
+            0 !important;
+
+        max-height:
+            0 !important;
+
+        margin:
+            0 !important;
+
+        padding:
+            0 !important;
     }
+
 
     html,
     body,
     .stApp {
-        margin: 0 !important;
-        padding: 0 !important;
-        padding-top: 0 !important;
-        overflow-x: hidden !important;
+        margin:
+            0 !important;
+
+        padding:
+            0 !important;
+
+        overflow-x:
+            hidden !important;
     }
+
 
     [data-testid="stAppViewContainer"],
     [data-testid="stMain"] {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
+        margin-top:
+            0 !important;
+
+        padding-top:
+            0 !important;
     }
+
 
     [data-testid="stMainBlockContainer"],
     .block-container {
-        margin-top: 0 !important;
-        padding-top: 0.1rem !important;
-        padding-left: 0.9rem !important;
-        padding-right: 0.9rem !important;
+        margin-top:
+            0 !important;
+
+        padding-top:
+            0.05rem !important;
+
+        padding-left:
+            0.9rem !important;
+
+        padding-right:
+            0.9rem !important;
     }
+
 
     .checki-header {
-        padding-top: 5px !important;
-        padding-bottom: 9px !important;
+        padding:
+            11px 0
+            7px 0 !important;
     }
 
-    .checki-logo {
-        font-size: 32px !important;
+
+    .checki-brand {
+        font-size:
+            27px !important;
+
+        gap:
+            8px !important;
     }
 
-    .checki-subtitle {
-        margin-top: 5px !important;
-        font-size: 8.5px !important;
+
+    .checki-tagline {
+        margin-top:
+            6px !important;
+
+        font-size:
+            7.5px !important;
     }
 
-    .hero {
-        padding: 20px 5px 16px 5px !important;
-    }
-
-    .hero-title {
-        font-size: 25px !important;
-    }
-
-    .hero-desc {
-        margin-top: 9px !important;
-        font-size: 13px !important;
-    }
-
-    .checki-card {
-        padding: 17px !important;
-        border-radius: 18px !important;
-    }
-
-    .card-title {
-        font-size: 16px !important;
-    }
 
     div[role="radiogroup"] {
-        overflow-x: auto;
-        border-radius: 15px !important;
+        margin-top:
+            0 !important;
+
+        padding:
+            3px 5px !important;
     }
+
 
     div[role="radiogroup"] label {
-        font-size: 12px !important;
+        font-size:
+            11.5px !important;
+
+        padding:
+            2px 3px !important;
     }
+
+
+    .hero {
+        padding:
+            31px 5px
+            16px 5px !important;
+    }
+
+
+    .hero-title {
+        font-size:
+            25px !important;
+    }
+
+
+    .hero-desc {
+        font-size:
+            13px !important;
+
+        margin-top:
+            9px !important;
+    }
+
+
+    .checki-card {
+        padding:
+            17px !important;
+
+        border-radius:
+            18px !important;
+    }
+
+
+    [data-testid="stFileUploaderDropzone"] {
+        min-height:
+            82px !important;
+
+        padding:
+            12px !important;
+    }
+
+
+    [data-testid="stFileUploaderDropzone"] button {
+        min-width:
+            90px !important;
+
+        padding:
+            0 13px !important;
+    }
+
+
+    [data-testid="stFileUploaderDropzone"]::after {
+        content:
+            "PNG · JPG · WEBP";
+
+        font-size:
+            11px;
+    }
+
 
     [data-testid="stImage"] img {
-        max-width: 260px !important;
-        width: auto !important;
-        height: auto !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
+        max-width:
+            245px !important;
+
+        width:
+            auto !important;
+
+        height:
+            auto !important;
     }
 
+
     [data-testid="stMetric"] {
-        padding: 11px !important;
+        padding:
+            10px !important;
     }
 }
+
 </style>
 """,
     unsafe_allow_html=True
@@ -431,51 +933,64 @@ div[role="radiogroup"] label {
 
 
 # =========================================================
-# 2. Secrets
+# 2. SECRETS
 # =========================================================
 
 try:
     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+
 except Exception:
-    st.error("앱 설정 정보를 불러오지 못했습니다. Streamlit Secrets 설정을 확인해주세요.")
+    st.error(
+        "앱 설정 정보를 불러오지 못했습니다. "
+        "Streamlit Secrets 설정을 확인해주세요."
+    )
     st.stop()
 
 
 # =========================================================
-# 3. Gemini
+# 3. GEMINI
 # =========================================================
 
 try:
-    gemini = genai.Client(api_key=GEMINI_API_KEY)
+    gemini = genai.Client(
+        api_key=GEMINI_API_KEY
+    )
+
 except Exception:
     gemini = None
 
 
 # =========================================================
-# 4. Supabase
+# 4. SUPABASE
 # =========================================================
 
 if "supabase_client" not in st.session_state:
+
     try:
         st.session_state["supabase_client"] = create_client(
             SUPABASE_URL,
             SUPABASE_KEY
         )
+
     except Exception:
         st.session_state["supabase_client"] = None
+
 
 supabase = st.session_state["supabase_client"]
 
 
 # =========================================================
-# 5. 사용자 ID
+# 5. USER ID
 # =========================================================
 
 if "user_id" not in st.session_state:
+
     try:
+
         if "uid" in st.query_params:
+
             uid = st.query_params["uid"]
 
             if isinstance(uid, list):
@@ -484,72 +999,118 @@ if "user_id" not in st.session_state:
             st.session_state["user_id"] = uid
 
         else:
-            uid = str(uuid.uuid4())
+
+            uid = str(
+                uuid.uuid4()
+            )
+
             st.session_state["user_id"] = uid
+
             st.query_params["uid"] = uid
 
     except Exception:
-        st.session_state["user_id"] = str(uuid.uuid4())
+
+        st.session_state["user_id"] = str(
+            uuid.uuid4()
+        )
+
 
 user_id = st.session_state["user_id"]
 
 
 # =========================================================
-# 6. DB 함수
+# 6. DATABASE
 # =========================================================
 
 def get_expenses():
+
     if supabase is None:
         return []
 
     try:
+
         response = (
             supabase
             .table("checki_expenses")
             .select("*")
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
+            .eq(
+                "user_id",
+                user_id
+            )
+            .order(
+                "created_at",
+                desc=True
+            )
             .execute()
         )
 
         return response.data or []
 
     except Exception:
+
         return []
 
 
 def get_records():
+
     if supabase is None:
         return []
 
     try:
+
         response = (
             supabase
             .table("checki_records")
             .select("*")
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
+            .eq(
+                "user_id",
+                user_id
+            )
+            .order(
+                "created_at",
+                desc=True
+            )
             .execute()
         )
 
         return response.data or []
 
     except Exception:
+
         return []
 
 
-def add_expense(category, item_name, amount):
+def add_expense(
+    category,
+    item_name,
+    amount
+):
+
     if supabase is None:
         return False
 
     try:
+
         data = {
-            "user_id": user_id,
-            "category": category,
-            "item_name": item_name,
-            "amount": int(amount),
-            "purchased_at": now_kst().date().isoformat(),
-            "created_at": iso_now()
+            "user_id":
+                user_id,
+
+            "category":
+                category,
+
+            "item_name":
+                item_name,
+
+            "amount":
+                int(amount),
+
+            "purchased_at":
+                now_kst()
+                .date()
+                .isoformat(),
+
+            "created_at":
+                iso_now()
         }
 
         (
@@ -562,6 +1123,7 @@ def add_expense(category, item_name, amount):
         return True
 
     except Exception:
+
         return False
 
 
@@ -575,29 +1137,75 @@ def save_analysis_record(
     detected,
     ai_result
 ):
+
     if supabase is None:
         return None
 
     try:
+
         hold_started = now_kst()
-        hold_until = hold_started + timedelta(minutes=30)
+
+        hold_until = (
+            hold_started
+            + timedelta(
+                minutes=30
+            )
+        )
 
         data = {
-            "user_id": user_id,
-            "product_name": product_name,
-            "category": category,
-            "product_price": int(product_price or 0),
-            "risk_level": risk_level,
-            "risk_score": int(risk_score or 0),
-            "one_line_summary": summary,
-            "detected_elements": detected,
-            "ai_result": ai_result,
-            "action_text": "30분 생각하기",
-            "decision": "HOLD",
-            "saved_amount": 0,
-            "hold_started_at": hold_started.isoformat(),
-            "hold_until": hold_until.isoformat(),
-            "created_at": hold_started.isoformat()
+            "user_id":
+                user_id,
+
+            "product_name":
+                product_name,
+
+            "category":
+                category,
+
+            "product_price":
+                int(
+                    product_price
+                    or 0
+                ),
+
+            "risk_level":
+                risk_level,
+
+            "risk_score":
+                int(
+                    risk_score
+                    or 0
+                ),
+
+            "one_line_summary":
+                summary,
+
+            "detected_elements":
+                detected,
+
+            "ai_result":
+                ai_result,
+
+            "action_text":
+                "30분 생각하기",
+
+            "decision":
+                "HOLD",
+
+            "saved_amount":
+                0,
+
+            "hold_started_at":
+                hold_started
+                .isoformat(),
+
+            "hold_until":
+                hold_until
+                .isoformat(),
+
+            "created_at":
+                hold_started
+                .isoformat()
         }
 
         response = (
@@ -613,31 +1221,53 @@ def save_analysis_record(
         return None
 
     except Exception:
+
         return None
 
 
-def update_record(record_id, decision, saved_amount=0):
-    if supabase is None or record_id is None:
+def update_record(
+    record_id,
+    decision,
+    saved_amount=0
+):
+
+    if (
+        supabase is None
+        or record_id is None
+    ):
         return False
 
     try:
+
         data = {
-            "decision": decision,
-            "saved_amount": int(saved_amount or 0),
-            "decided_at": iso_now()
+            "decision":
+                decision,
+
+            "saved_amount":
+                int(
+                    saved_amount
+                    or 0
+                ),
+
+            "decided_at":
+                iso_now()
         }
 
         (
             supabase
             .table("checki_records")
             .update(data)
-            .eq("id", record_id)
+            .eq(
+                "id",
+                record_id
+            )
             .execute()
         )
 
         return True
 
     except Exception:
+
         return False
 
 
@@ -646,21 +1276,33 @@ def update_record(record_id, decision, saved_amount=0):
 # =========================================================
 
 def read_url(url):
+
     if not url:
         return None
 
-    if not url.startswith(("http://", "https://")):
-        url = "https://" + url
+    if not url.startswith(
+        (
+            "http://",
+            "https://"
+        )
+    ):
+
+        url = (
+            "https://"
+            + url
+        )
 
     headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Linux; Android 13) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "User-Agent":
+            "Mozilla/5.0 "
+            "(Linux; Android 13) "
+            "AppleWebKit/537.36 "
+            "(KHTML, like Gecko) "
             "Chrome/120.0 Safari/537.36"
-        )
     }
 
     try:
+
         response = requests.get(
             url,
             headers=headers,
@@ -674,16 +1316,39 @@ def read_url(url):
             "html.parser"
         )
 
-        for tag in soup(["script", "style", "noscript"]):
+        for tag in soup(
+            [
+                "script",
+                "style",
+                "noscript"
+            ]
+        ):
+
             tag.decompose()
 
         title = ""
 
         if soup.title:
-            title = soup.title.get_text(" ", strip=True)
 
-        text = soup.get_text(" ", strip=True)
-        text = re.sub(r"\s+", " ", text)
+            title = (
+                soup.title
+                .get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+        text = soup.get_text(
+            " ",
+            strip=True
+        )
+
+        text = re.sub(
+            r"\s+",
+            " ",
+            text
+        )
+
         text = text[:12000]
 
         return (
@@ -692,40 +1357,80 @@ def read_url(url):
         )
 
     except Exception:
+
         return None
 
 
 # =========================================================
-# 8. Gemini 재시도
+# 8. GEMINI RETRY
 # =========================================================
 
-def generate_with_retry(contents, retries=3):
+def generate_with_retry(
+    contents,
+    retries=3
+):
+
     if gemini is None:
-        raise Exception("Gemini client unavailable")
+
+        raise Exception(
+            "Gemini client unavailable"
+        )
 
     last_error = None
 
-    for i in range(retries):
+    for i in range(
+        retries
+    ):
+
         try:
-            return gemini.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=contents
+
+            return (
+                gemini
+                .models
+                .generate_content(
+                    model=
+                        "gemini-2.5-flash",
+
+                    contents=
+                        contents
+                )
             )
 
         except Exception as e:
-            last_error = e
-            msg = str(e).lower()
 
-            retryable = (
-                "503" in msg
-                or "unavailable" in msg
-                or "high demand" in msg
-                or "429" in msg
-                or "resource exhausted" in msg
+            last_error = e
+
+            msg = (
+                str(e)
+                .lower()
             )
 
-            if retryable and i < retries - 1:
-                time.sleep(2 * (i + 1))
+            retryable = (
+                "503"
+                in msg
+
+                or "unavailable"
+                in msg
+
+                or "high demand"
+                in msg
+
+                or "429"
+                in msg
+
+                or "resource exhausted"
+                in msg
+            )
+
+            if (
+                retryable
+                and i < retries - 1
+            ):
+
+                time.sleep(
+                    2 * (i + 1)
+                )
+
                 continue
 
             raise
@@ -734,47 +1439,82 @@ def generate_with_retry(contents, retries=3):
 
 
 # =========================================================
-# 9. AI 응답 파싱
+# 9. PARSING
 # =========================================================
 
-def parse_field(text, field, default=""):
-    pattern = rf"{field}\s*:\s*(.+)"
-    match = re.search(pattern, text, re.IGNORECASE)
+def parse_field(
+    text,
+    field,
+    default=""
+):
+
+    pattern = (
+        rf"{field}\s*:\s*(.+)"
+    )
+
+    match = re.search(
+        pattern,
+        text,
+        re.IGNORECASE
+    )
 
     if match:
-        return match.group(1).strip()
+
+        return (
+            match
+            .group(1)
+            .strip()
+        )
 
     return default
 
 
 def parse_price(value):
+
     if not value:
         return 0
 
-    numbers = re.sub(r"[^0-9]", "", str(value))
+    numbers = re.sub(
+        r"[^0-9]",
+        "",
+        str(value)
+    )
 
     try:
         return int(numbers)
+
     except Exception:
         return 0
 
 
 def parse_score(value):
+
     if not value:
         return 0
 
-    match = re.search(r"\d+", str(value))
+    match = re.search(
+        r"\d+",
+        str(value)
+    )
 
     if not match:
         return 0
 
-    score = int(match.group())
+    score = int(
+        match.group()
+    )
 
-    return max(0, min(score, 100))
+    return max(
+        0,
+        min(
+            score,
+            100
+        )
+    )
 
 
 # =========================================================
-# 10. AI 분석
+# 10. AI ANALYSIS
 # =========================================================
 
 def analyze_product(
@@ -783,6 +1523,7 @@ def analyze_product(
     image=None,
     page_text=None
 ):
+
     instructions = f"""
 너는 소비자를 보호하는 AI 서비스 '체키(CHECKI)'다.
 
@@ -808,7 +1549,7 @@ def analyze_product(
 8. 숨겨진 비용
 9. 구독 유도
 10. 해지 또는 거절을 어렵게 만드는 표현
-11. 소비자의 즉각적인 구매를 유도하는 문구
+11. 즉각적인 구매를 유도하는 문구
 12. 충동구매 가능성을 높이는 화면 구성
 
 화면이나 페이지에서 상품 가격을 확인할 수 있다면
@@ -816,10 +1557,10 @@ def analyze_product(
 
 가격을 확실히 알 수 없으면 PRICE는 0으로 한다.
 
-위험도는 LOW, MEDIUM, HIGH 중 하나로 판단한다.
+위험도는 LOW, MEDIUM, HIGH 중 하나다.
 RISK_SCORE는 0~100 사이 정수다.
 
-반드시 아래 형식을 그대로 사용한다.
+반드시 다음 형식으로 답한다.
 
 PRODUCT_NAME: 상품명
 PRICE: 숫자만
@@ -830,24 +1571,40 @@ DETECTED: 발견된 다크패턴 또는 구매 압박 요소. 없으면 없음
 ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
 """
 
-    contents = [instructions]
+    contents = [
+        instructions
+    ]
 
     if page_text:
+
         contents.append(
-            f"분석할 쇼핑 페이지 정보:\n\n{page_text}"
+            "분석할 쇼핑 페이지 정보:\n\n"
+            + page_text
         )
 
     if image is not None:
-        contents.append(image)
 
-    response = generate_with_retry(contents)
+        contents.append(
+            image
+        )
 
-    result = response.text or ""
+    response = (
+        generate_with_retry(
+            contents
+        )
+    )
 
-    extracted_name = parse_field(
-        result,
-        "PRODUCT_NAME",
-        product_name
+    result = (
+        response.text
+        or ""
+    )
+
+    extracted_name = (
+        parse_field(
+            result,
+            "PRODUCT_NAME",
+            product_name
+        )
     )
 
     price = parse_price(
@@ -858,61 +1615,98 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
         )
     )
 
-    risk_level = parse_field(
-        result,
-        "RISK_LEVEL",
-        "MEDIUM"
-    ).upper()
-
-    if risk_level not in ["LOW", "MEDIUM", "HIGH"]:
-        risk_level = "MEDIUM"
-
-    risk_score = parse_score(
+    risk_level = (
         parse_field(
             result,
-            "RISK_SCORE",
-            "50"
+            "RISK_LEVEL",
+            "MEDIUM"
+        )
+        .upper()
+    )
+
+    if risk_level not in [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+    ]:
+
+        risk_level = (
+            "MEDIUM"
+        )
+
+    risk_score = (
+        parse_score(
+            parse_field(
+                result,
+                "RISK_SCORE",
+                "50"
+            )
         )
     )
 
-    summary = parse_field(
-        result,
-        "SUMMARY",
-        "구매 전 한 번 더 확인해보세요."
+    summary = (
+        parse_field(
+            result,
+            "SUMMARY",
+            "구매 전 한 번 더 확인해보세요."
+        )
     )
 
-    detected = parse_field(
-        result,
-        "DETECTED",
-        "확인 필요"
+    detected = (
+        parse_field(
+            result,
+            "DETECTED",
+            "확인 필요"
+        )
     )
 
-    advice = parse_field(
-        result,
-        "ADVICE",
-        "구매 필요성과 가격을 다시 확인해보세요."
+    advice = (
+        parse_field(
+            result,
+            "ADVICE",
+            "구매 필요성과 가격을 다시 확인해보세요."
+        )
     )
 
     return {
-        "product_name": extracted_name,
-        "price": price,
-        "risk_level": risk_level,
-        "risk_score": risk_score,
-        "summary": summary,
-        "detected": detected,
-        "advice": advice,
-        "raw": result
+        "product_name":
+            extracted_name,
+
+        "price":
+            price,
+
+        "risk_level":
+            risk_level,
+
+        "risk_score":
+            risk_score,
+
+        "summary":
+            summary,
+
+        "detected":
+            detected,
+
+        "advice":
+            advice,
+
+        "raw":
+            result
     }
 
 
 # =========================================================
-# 11. HEADER
+# 11. LOGO
 # =========================================================
 
 header_html = (
     '<div class="checki-header">'
-    '<div class="checki-logo">체키</div>'
-    '<div class="checki-subtitle">CHECK BEFORE YOU BUY</div>'
+    '<div class="checki-brand">'
+    '<span class="checki-brand-en">CHECKI</span>'
+    '<span class="checki-divider">|</span>'
+    '<span class="checki-brand-ko">체키</span>'
+    '</div>'
+    '<div class="checki-tagline">CHECK BEFORE YOU BUY</div>'
     '</div>'
 )
 
@@ -928,14 +1722,23 @@ st.markdown(
 
 page = st.radio(
     "navigation",
-    ["홈", "구매체크", "소비분석", "MY"],
+
+    [
+        "홈",
+        "구매체크",
+        "소비분석",
+        "MY"
+    ],
+
     horizontal=True,
-    label_visibility="collapsed"
+
+    label_visibility=
+        "collapsed"
 )
 
 
 # =========================================================
-# 13. 홈
+# 13. HOME
 # =========================================================
 
 if page == "홈":
@@ -957,7 +1760,8 @@ if page == "홈":
         unsafe_allow_html=True
     )
 
-    card1 = (
+
+    cards_html = (
         '<div class="checki-card">'
         '<div class="card-title">🔎 구매 전 AI 체크</div>'
         '<div class="card-desc">'
@@ -965,9 +1769,7 @@ if page == "홈":
         '구매를 재촉하는 요소를 AI가 분석합니다.'
         '</div>'
         '</div>'
-    )
 
-    card2 = (
         '<div class="checki-card">'
         '<div class="card-title">⏱️ 30분 생각하기</div>'
         '<div class="card-desc">'
@@ -975,9 +1777,7 @@ if page == "홈":
         '정말 필요한 소비인지 다시 판단할 수 있습니다.'
         '</div>'
         '</div>'
-    )
 
-    card3 = (
         '<div class="checki-card">'
         '<div class="card-title">📊 소비 기록 확인</div>'
         '<div class="card-desc">'
@@ -988,7 +1788,7 @@ if page == "홈":
     )
 
     st.markdown(
-        card1 + card2 + card3,
+        cards_html,
         unsafe_allow_html=True
     )
 
@@ -1015,213 +1815,469 @@ elif page == "구매체크":
         unsafe_allow_html=True
     )
 
-    product_name = st.text_input(
-        "상품명",
-        placeholder="예: 무선 이어폰"
+
+    product_name = (
+        st.text_input(
+            "상품명",
+            placeholder=
+                "예: 무선 이어폰"
+        )
     )
 
-    category = st.selectbox(
-        "카테고리",
-        [
-            "패션/의류",
-            "뷰티",
-            "식품",
-            "생활용품",
-            "전자기기",
-            "가구/인테리어",
-            "취미/여가",
-            "구독서비스",
-            "기타"
-        ]
+
+    category = (
+        st.selectbox(
+            "카테고리",
+
+            [
+                "패션/의류",
+                "뷰티",
+                "식품",
+                "생활용품",
+                "전자기기",
+                "가구/인테리어",
+                "취미/여가",
+                "구독서비스",
+                "기타"
+            ]
+        )
     )
 
-    input_type = st.radio(
-        "분석 방법",
-        ["스크린샷", "상품 링크"],
-        horizontal=True
+
+    input_type = (
+        st.radio(
+            "분석 방법",
+
+            [
+                "스크린샷",
+                "상품 링크"
+            ],
+
+            horizontal=True
+        )
     )
+
 
     uploaded_image = None
     product_url = None
 
-    if input_type == "스크린샷":
 
-        uploaded_file = st.file_uploader(
-            "쇼핑 화면을 올려주세요",
-            type=["png", "jpg", "jpeg", "webp"]
+    # -----------------------------------------------------
+    # SCREENSHOT
+    # -----------------------------------------------------
+
+    if (
+        input_type
+        == "스크린샷"
+    ):
+
+        uploaded_file = (
+            st.file_uploader(
+                "쇼핑 화면을 올려주세요",
+
+                type=[
+                    "png",
+                    "jpg",
+                    "jpeg",
+                    "webp"
+                ],
+
+                label_visibility=
+                    "visible"
+            )
         )
 
-        if uploaded_file:
-            uploaded_image = Image.open(uploaded_file)
 
-            image_width = uploaded_image.size[0]
-            preview_width = min(360, image_width)
+        if uploaded_file:
+
+            uploaded_image = (
+                Image.open(
+                    uploaded_file
+                )
+            )
+
+
+            image_width = (
+                uploaded_image
+                .size[0]
+            )
+
+
+            preview_width = min(
+                340,
+                image_width
+            )
+
 
             st.image(
                 uploaded_image,
-                width=preview_width
+                width=
+                    preview_width
             )
+
+
+    # -----------------------------------------------------
+    # LINK
+    # -----------------------------------------------------
 
     else:
 
-        product_url = st.text_input(
-            "상품 링크",
-            placeholder="https://..."
+        product_url = (
+            st.text_input(
+                "상품 링크",
+
+                placeholder=
+                    "https://..."
+            )
         )
 
-    analyze_clicked = st.button(
-        "체키로 분석하기",
-        type="primary",
-        use_container_width=True
+
+    analyze_clicked = (
+        st.button(
+            "체키로 분석하기",
+
+            type=
+                "primary",
+
+            use_container_width=
+                True
+        )
     )
+
+
+    # =====================================================
+    # 분석
+    # =====================================================
 
     if analyze_clicked:
 
         if not product_name.strip():
 
-            st.warning("상품명을 입력해주세요.")
+            st.warning(
+                "상품명을 입력해주세요."
+            )
 
-        elif input_type == "스크린샷" and uploaded_image is None:
 
-            st.warning("분석할 쇼핑 화면을 올려주세요.")
+        elif (
+            input_type
+            == "스크린샷"
+            and uploaded_image is None
+        ):
 
-        elif input_type == "상품 링크" and not product_url:
+            st.warning(
+                "분석할 쇼핑 화면을 올려주세요."
+            )
 
-            st.warning("상품 링크를 입력해주세요.")
+
+        elif (
+            input_type
+            == "상품 링크"
+            and not product_url
+        ):
+
+            st.warning(
+                "상품 링크를 입력해주세요."
+            )
+
 
         else:
 
             page_text = None
 
-            if input_type == "상품 링크":
+
+            if (
+                input_type
+                == "상품 링크"
+            ):
 
                 with st.spinner(
                     "상품 페이지를 확인하고 있어요..."
                 ):
-                    page_text = read_url(product_url)
+
+                    page_text = (
+                        read_url(
+                            product_url
+                        )
+                    )
+
 
                 if page_text is None:
+
                     st.warning(
-                        "이 쇼핑몰은 상품 페이지를 자동으로 읽지 못했어요. "
-                        "상품 화면을 캡처한 뒤 스크린샷 분석을 이용해주세요."
+                        "이 쇼핑몰은 상품 페이지를 "
+                        "자동으로 읽지 못했어요. "
+                        "상품 화면을 캡처한 뒤 "
+                        "스크린샷 분석을 이용해주세요."
                     )
+
                     st.stop()
+
 
             try:
 
                 with st.spinner(
                     "체키가 구매 화면을 분석하고 있어요..."
                 ):
-                    result = analyze_product(
-                        product_name=product_name,
-                        category=category,
-                        image=uploaded_image,
-                        page_text=page_text
+
+                    result = (
+                        analyze_product(
+                            product_name=
+                                product_name,
+
+                            category=
+                                category,
+
+                            image=
+                                uploaded_image,
+
+                            page_text=
+                                page_text
+                        )
                     )
 
-                st.session_state["latest_analysis"] = result
 
-                saved_record = save_analysis_record(
-                    product_name=result["product_name"],
-                    category=category,
-                    product_price=result["price"],
-                    risk_level=result["risk_level"],
-                    risk_score=result["risk_score"],
-                    summary=result["summary"],
-                    detected=result["detected"],
-                    ai_result=result["raw"]
+                st.session_state[
+                    "latest_analysis"
+                ] = result
+
+
+                saved_record = (
+                    save_analysis_record(
+                        product_name=
+                            result[
+                                "product_name"
+                            ],
+
+                        category=
+                            category,
+
+                        product_price=
+                            result[
+                                "price"
+                            ],
+
+                        risk_level=
+                            result[
+                                "risk_level"
+                            ],
+
+                        risk_score=
+                            result[
+                                "risk_score"
+                            ],
+
+                        summary=
+                            result[
+                                "summary"
+                            ],
+
+                        detected=
+                            result[
+                                "detected"
+                            ],
+
+                        ai_result=
+                            result[
+                                "raw"
+                            ]
+                    )
                 )
 
-                st.session_state["latest_record"] = saved_record
+
+                st.session_state[
+                    "latest_record"
+                ] = saved_record
+
 
             except Exception as e:
 
-                error_text = str(e).lower()
+                error_text = (
+                    str(e)
+                    .lower()
+                )
+
 
                 if (
-                    "503" in error_text
-                    or "high demand" in error_text
-                    or "unavailable" in error_text
-                    or "429" in error_text
+                    "503"
+                    in error_text
+
+                    or "high demand"
+                    in error_text
+
+                    or "unavailable"
+                    in error_text
+
+                    or "429"
+                    in error_text
                 ):
+
                     st.error(
-                        "현재 AI 사용량이 많아요. 잠시 후 다시 분석해주세요."
+                        "현재 AI 사용량이 많아요. "
+                        "잠시 후 다시 분석해주세요."
                     )
 
                 else:
+
                     st.error(
-                        "분석 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        "분석 중 문제가 발생했습니다. "
+                        "잠시 후 다시 시도해주세요."
                     )
 
-    # -----------------------------------------------------
-    # 분석 결과
-    # -----------------------------------------------------
 
-    if "latest_analysis" in st.session_state:
+    # =====================================================
+    # RESULT
+    # =====================================================
 
-        result = st.session_state["latest_analysis"]
-        level = result["risk_level"]
+    if (
+        "latest_analysis"
+        in st.session_state
+    ):
+
+        result = (
+            st.session_state[
+                "latest_analysis"
+            ]
+        )
+
+
+        level = (
+            result[
+                "risk_level"
+            ]
+        )
+
 
         if level == "LOW":
-            css_class = "result-low"
-            risk_text = "낮음 🟢"
+
+            css_class = (
+                "result-low"
+            )
+
+            risk_text = (
+                "낮음 🟢"
+            )
+
 
         elif level == "HIGH":
-            css_class = "result-high"
-            risk_text = "높음 🔴"
+
+            css_class = (
+                "result-high"
+            )
+
+            risk_text = (
+                "높음 🔴"
+            )
+
 
         else:
-            css_class = "result-medium"
-            risk_text = "주의 🟡"
+
+            css_class = (
+                "result-medium"
+            )
+
+            risk_text = (
+                "주의 🟡"
+            )
+
 
         result_html = (
             f'<div class="{css_class}">'
-            f'<div class="risk-title">구매 유도 위험도 {risk_text}</div>'
-            f'<div style="margin-top:16px;"><b>위험 점수</b><br>{result["risk_score"]} / 100</div>'
-            f'<div style="margin-top:15px;"><b>체키 한줄 요약</b><br>{result["summary"]}</div>'
-            f'<div style="margin-top:15px;"><b>발견된 요소</b><br>{result["detected"]}</div>'
-            f'<div style="margin-top:15px;"><b>체키의 제안</b><br>{result["advice"]}</div>'
-            '</div>'
+
+            f'<div class="risk-title">'
+            f'구매 유도 위험도 {risk_text}'
+            f'</div>'
+
+            f'<div style="margin-top:16px;">'
+            f'<b>위험 점수</b><br>'
+            f'{result["risk_score"]} / 100'
+            f'</div>'
+
+            f'<div style="margin-top:15px;">'
+            f'<b>체키 한줄 요약</b><br>'
+            f'{result["summary"]}'
+            f'</div>'
+
+            f'<div style="margin-top:15px;">'
+            f'<b>발견된 요소</b><br>'
+            f'{result["detected"]}'
+            f'</div>'
+
+            f'<div style="margin-top:15px;">'
+            f'<b>체키의 제안</b><br>'
+            f'{result["advice"]}'
+            f'</div>'
+
+            f'</div>'
         )
+
 
         st.markdown(
             result_html,
             unsafe_allow_html=True
         )
 
-        if result["price"] > 0:
+
+        if (
+            result[
+                "price"
+            ]
+            > 0
+        ):
 
             price_html = (
                 '<div class="price-box">'
-                'AI가 화면에서 확인한 가격<br>'
-                f'<span style="font-size:22px;font-weight:850;color:#1689F8;letter-spacing:-0.04em;">'
+                'AI가 화면에서 확인한 가격'
+                '<br>'
+                '<span style="'
+                'font-size:22px;'
+                'font-weight:850;'
+                'color:#1689F8;'
+                'letter-spacing:-0.04em;'
+                '">'
                 f'{result["price"]:,}원'
                 '</span>'
                 '</div>'
             )
+
 
             st.markdown(
                 price_html,
                 unsafe_allow_html=True
             )
 
+
         else:
 
             st.info(
-                "화면에서 정확한 상품 가격을 확인하지 못했어요."
+                "화면에서 정확한 상품 가격을 "
+                "확인하지 못했어요."
             )
 
-        st.markdown("### ⏱️ 30분 생각하기")
 
-        st.caption(
-            "바로 결제하기 전에 잠시 멈춰 정말 필요한 구매인지 다시 생각해보세요."
+        st.markdown(
+            "### ⏱️ 30분 생각하기"
         )
 
-        record = st.session_state.get("latest_record")
+
+        st.caption(
+            "바로 결제하기 전에 잠시 멈춰 "
+            "정말 필요한 구매인지 다시 생각해보세요."
+        )
+
+
+        record = (
+            st.session_state
+            .get(
+                "latest_record"
+            )
+        )
+
 
         if record:
+
             st.success(
-                "구매 보류가 시작되었습니다. MY에서 기록을 확인할 수 있어요."
+                "구매 보류가 시작되었습니다. "
+                "MY에서 기록을 확인할 수 있어요."
             )
 
 
@@ -1242,85 +2298,159 @@ elif page == "소비분석":
         '</div>'
     )
 
+
     st.markdown(
         analysis_hero,
         unsafe_allow_html=True
     )
 
-    expenses = get_expenses()
-    records = get_records()
+
+    expenses = (
+        get_expenses()
+    )
+
+    records = (
+        get_records()
+    )
+
 
     total_spent = sum(
-        int(x.get("amount", 0) or 0)
-        for x in expenses
+        int(
+            x.get(
+                "amount",
+                0
+            )
+            or 0
+        )
+        for x
+        in expenses
     )
 
+
     total_saved = sum(
-        int(x.get("saved_amount", 0) or 0)
-        for x in records
+        int(
+            x.get(
+                "saved_amount",
+                0
+            )
+            or 0
+        )
+        for x
+        in records
     )
+
 
     avoided = len(
         [
             x
-            for x in records
-            if x.get("decision") == "NOT_BUY"
+            for x
+            in records
+
+            if (
+                x.get(
+                    "decision"
+                )
+                == "NOT_BUY"
+            )
         ]
     )
 
-    c1, c2, c3 = st.columns(3)
+
+    c1, c2, c3 = (
+        st.columns(3)
+    )
+
 
     with c1:
+
         st.metric(
             "총 소비",
             f"{total_spent:,}원"
         )
 
+
     with c2:
+
         st.metric(
             "아낀 금액",
             f"{total_saved:,}원"
         )
 
+
     with c3:
+
         st.metric(
             "구매하지 않음",
             f"{avoided}회"
         )
 
-    st.markdown("### 최근 소비")
+
+    st.markdown(
+        "### 최근 소비"
+    )
+
 
     if not expenses:
 
-        st.info("아직 등록된 소비가 없어요.")
+        st.info(
+            "아직 등록된 소비가 없어요."
+        )
+
 
     else:
 
-        for expense in expenses[:10]:
+        for expense in (
+            expenses[:10]
+        ):
 
             amount = int(
-                expense.get("amount", 0) or 0
+                expense.get(
+                    "amount",
+                    0
+                )
+                or 0
             )
 
-            item_name = expense.get(
-                "item_name",
-                "상품"
+
+            item_name = (
+                expense.get(
+                    "item_name",
+                    "상품"
+                )
             )
 
-            expense_category = expense.get(
-                "category",
-                "기타"
+
+            expense_category = (
+                expense.get(
+                    "category",
+                    "기타"
+                )
             )
+
 
             expense_html = (
                 '<div class="checki-card">'
-                f'<div class="card-title">{item_name}</div>'
-                f'<div class="card-desc">{expense_category}</div>'
-                f'<div style="margin-top:12px;font-size:18px;font-weight:800;color:#18344B;">'
+
+                f'<div class="card-title">'
+                f'{item_name}'
+                f'</div>'
+
+                f'<div class="card-desc">'
+                f'{expense_category}'
+                f'</div>'
+
+                f'<div style="'
+                f'margin-top:12px;'
+                f'font-size:18px;'
+                f'font-weight:800;'
+                f'color:#18344B;'
+                f'">'
                 f'{amount:,}원'
-                '</div>'
+                f'</div>'
+
                 '</div>'
             )
+
 
             st.markdown(
                 expense_html,
@@ -1345,69 +2475,121 @@ elif page == "MY":
         '</div>'
     )
 
+
     st.markdown(
         my_hero,
         unsafe_allow_html=True
     )
 
-    records = get_records()
+
+    records = (
+        get_records()
+    )
+
 
     if not records:
 
-        st.info("아직 체키 기록이 없어요.")
+        st.info(
+            "아직 체키 기록이 없어요."
+        )
+
 
     else:
 
-        for index, record in enumerate(records[:20]):
+        for index, record in enumerate(
+            records[:20]
+        ):
 
-            product = record.get(
-                "product_name",
-                "상품"
+            product = (
+                record.get(
+                    "product_name",
+                    "상품"
+                )
             )
 
-            category = record.get(
-                "category",
-                "기타"
+
+            category = (
+                record.get(
+                    "category",
+                    "기타"
+                )
             )
+
 
             price = int(
                 record.get(
                     "product_price",
                     0
-                ) or 0
+                )
+                or 0
             )
 
-            decision = record.get(
-                "decision",
-                "HOLD"
+
+            decision = (
+                record.get(
+                    "decision",
+                    "HOLD"
+                )
             )
 
-            risk = record.get(
-                "risk_level",
-                "MEDIUM"
+
+            risk = (
+                record.get(
+                    "risk_level",
+                    "MEDIUM"
+                )
             )
 
-            record_id = record.get("id")
+
+            record_id = (
+                record.get(
+                    "id"
+                )
+            )
+
 
             if price > 0:
-                price_text = f"AI 확인 가격: {price:,}원"
+
+                price_text = (
+                    f"AI 확인 가격: "
+                    f"{price:,}원"
+                )
+
             else:
-                price_text = "가격 확인 안 됨"
+
+                price_text = (
+                    "가격 확인 안 됨"
+                )
+
 
             record_html = (
                 '<div class="checki-card">'
-                f'<div class="card-title">{product}</div>'
-                f'<div class="card-desc">{category} · 위험도 {risk}</div>'
-                f'<div style="margin-top:12px;font-weight:750;color:#19364D;">'
+
+                f'<div class="card-title">'
+                f'{product}'
+                f'</div>'
+
+                f'<div class="card-desc">'
+                f'{category} · 위험도 {risk}'
+                f'</div>'
+
+                f'<div style="'
+                f'margin-top:12px;'
+                f'font-weight:750;'
+                f'color:#19364D;'
+                f'">'
                 f'{price_text}'
-                '</div>'
+                f'</div>'
+
                 '</div>'
             )
+
 
             st.markdown(
                 record_html,
                 unsafe_allow_html=True
             )
+
 
             # -------------------------------------------------
             # HOLD
@@ -1415,72 +2597,128 @@ elif page == "MY":
 
             if decision == "HOLD":
 
-                hold_until_text = record.get(
-                    "hold_until"
+                hold_until_text = (
+                    record.get(
+                        "hold_until"
+                    )
                 )
+
 
                 hold_finished = True
                 hold_until = None
 
+
                 if hold_until_text:
 
                     try:
-                        hold_until = datetime.fromisoformat(
-                            hold_until_text.replace(
-                                "Z",
-                                "+00:00"
+
+                        hold_until = (
+                            datetime
+                            .fromisoformat(
+                                hold_until_text
+                                .replace(
+                                    "Z",
+                                    "+00:00"
+                                )
                             )
                         )
 
-                        if hold_until.tzinfo is None:
-                            hold_until = hold_until.replace(
-                                tzinfo=KST
+
+                        if (
+                            hold_until.tzinfo
+                            is None
+                        ):
+
+                            hold_until = (
+                                hold_until
+                                .replace(
+                                    tzinfo=KST
+                                )
                             )
+
 
                         hold_finished = (
                             now_kst()
-                            >= hold_until.astimezone(KST)
+                            >=
+                            hold_until
+                            .astimezone(
+                                KST
+                            )
                         )
 
-                    except Exception:
-                        hold_finished = True
 
+                    except Exception:
+
+                        hold_finished = (
+                            True
+                        )
+
+
+                # 아직 대기 중
                 if not hold_finished:
 
                     remaining = (
-                        hold_until.astimezone(KST)
-                        - now_kst()
+                        hold_until
+                        .astimezone(
+                            KST
+                        )
+                        -
+                        now_kst()
                     )
+
 
                     seconds = max(
                         0,
                         int(
-                            remaining.total_seconds()
+                            remaining
+                            .total_seconds()
                         )
                     )
 
-                    minutes = seconds // 60
-                    seconds_left = seconds % 60
+
+                    minutes = (
+                        seconds
+                        // 60
+                    )
+
+
+                    seconds_left = (
+                        seconds
+                        % 60
+                    )
+
 
                     st.info(
                         f"아직 생각하는 중이에요. "
-                        f"{minutes}분 {seconds_left}초 남았습니다."
+                        f"{minutes}분 "
+                        f"{seconds_left}초 남았습니다."
                     )
 
+
+                # 30분 종료
                 else:
 
                     st.write(
-                        "30분이 지났어요. 이 상품을 구매하셨나요?"
+                        "30분이 지났어요. "
+                        "이 상품을 구매하셨나요?"
                     )
 
-                    col1, col2 = st.columns(2)
+
+                    col1, col2 = (
+                        st.columns(2)
+                    )
+
 
                     with col1:
 
                         if st.button(
                             "구매하지 않았어요",
-                            key=f"no_{record_id}_{index}",
-                            use_container_width=True
+
+                            key=
+                                f"no_{record_id}_{index}",
+
+                            use_container_width=
+                                True
                         ):
 
                             saved = (
@@ -1489,33 +2727,43 @@ elif page == "MY":
                                 else 0
                             )
 
+
                             if update_record(
                                 record_id,
                                 "NOT_BUY",
                                 saved
                             ):
+
                                 st.success(
                                     "구매하지 않은 기록을 저장했어요."
                                 )
+
                                 st.rerun()
+
 
                     with col2:
 
                         if st.button(
                             "구매했어요",
-                            key=f"yes_{record_id}_{index}",
-                            type="primary",
-                            use_container_width=True
+
+                            key=
+                                f"yes_{record_id}_{index}",
+
+                            type=
+                                "primary",
+
+                            use_container_width=
+                                True
                         ):
 
                             st.session_state[
                                 "buy_record"
-                            ] = record_id
+                            ] = (
+                                record_id
+                            )
 
-                # ---------------------------------------------
-                # 실제 결제 금액
-                # ---------------------------------------------
 
+                # 실제 결제금액
                 if (
                     st.session_state.get(
                         "buy_record"
@@ -1523,82 +2771,128 @@ elif page == "MY":
                     == record_id
                 ):
 
-                    actual_amount = st.number_input(
-                        "실제로 결제한 금액",
-                        min_value=0,
-                        step=1000,
-                        value=(
-                            price
-                            if price > 0
-                            else 0
-                        ),
-                        key=f"amount_{record_id}"
+                    actual_amount = (
+                        st.number_input(
+                            "실제로 결제한 금액",
+
+                            min_value=
+                                0,
+
+                            step=
+                                1000,
+
+                            value=(
+                                price
+                                if price > 0
+                                else 0
+                            ),
+
+                            key=
+                                f"amount_{record_id}"
+                        )
                     )
+
 
                     if st.button(
                         "구매 기록 저장",
-                        key=f"save_buy_{record_id}",
-                        type="primary",
-                        use_container_width=True
+
+                        key=
+                            f"save_buy_{record_id}",
+
+                        type=
+                            "primary",
+
+                        use_container_width=
+                            True
                     ):
 
-                        expense_ok = add_expense(
-                            category,
-                            product,
-                            actual_amount
+                        expense_ok = (
+                            add_expense(
+                                category,
+                                product,
+                                actual_amount
+                            )
                         )
 
-                        record_ok = update_record(
-                            record_id,
-                            "BUY",
-                            0
+
+                        record_ok = (
+                            update_record(
+                                record_id,
+                                "BUY",
+                                0
+                            )
                         )
 
-                        if expense_ok and record_ok:
+
+                        if (
+                            expense_ok
+                            and record_ok
+                        ):
 
                             st.session_state.pop(
                                 "buy_record",
                                 None
                             )
 
+
                             st.success(
                                 "구매 기록을 저장했어요."
                             )
 
+
                             st.rerun()
+
 
                         else:
 
                             st.error(
-                                "구매 기록 저장 중 문제가 발생했습니다."
+                                "구매 기록 저장 중 "
+                                "문제가 발생했습니다."
                             )
+
 
             # -------------------------------------------------
             # NOT BUY
             # -------------------------------------------------
 
-            elif decision == "NOT_BUY":
+            elif (
+                decision
+                == "NOT_BUY"
+            ):
 
                 saved = int(
                     record.get(
                         "saved_amount",
                         0
-                    ) or 0
+                    )
+                    or 0
                 )
 
+
                 if saved > 0:
+
                     st.success(
-                        f"구매하지 않음 · {saved:,}원 절약"
+                        f"구매하지 않음 · "
+                        f"{saved:,}원 절약"
                     )
+
+
                 else:
+
                     st.success(
                         "구매하지 않음"
                     )
+
 
             # -------------------------------------------------
             # BUY
             # -------------------------------------------------
 
-            elif decision == "BUY":
+            elif (
+                decision
+                == "BUY"
+            ):
 
-                st.info("구매 완료")
+                st.info(
+                    "구매 완료"
+                )
