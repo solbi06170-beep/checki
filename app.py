@@ -249,7 +249,7 @@ h6 {
 
 
 /* =====================================================
-   STREAMLIT MARKDOWN 제목도 통일
+   STREAMLIT MARKDOWN 제목
    ===================================================== */
 
 .stMarkdown h1,
@@ -623,7 +623,7 @@ label,
 
 /* =====================================================
    FILE UPLOADER
-   upload/upload 겹침 수정 유지
+   수정: 업로드 후 사진 선택 버튼 중복 방지
    ===================================================== */
 
 [data-testid="stFileUploader"] {
@@ -643,7 +643,14 @@ label,
     padding: 14px 18px !important;
 }
 
-[data-testid="stFileUploaderDropzone"] button {
+
+/*
+중요:
+Dropzone 바로 아래에 있는 Browse 버튼만 선택한다.
+업로드된 파일 행의 버튼에는 적용하지 않는다.
+*/
+
+[data-testid="stFileUploaderDropzone"] > button {
     position: relative !important;
 
     display: flex !important;
@@ -680,18 +687,23 @@ label,
     line-height: 0 !important;
 }
 
-[data-testid="stFileUploaderDropzone"] button > * {
+
+/*
+실제 Browse 버튼 내부 기본 글자만 숨김
+*/
+
+[data-testid="stFileUploaderDropzone"] > button > * {
     display: none !important;
 
     visibility: hidden !important;
-
-    width: 0 !important;
-    height: 0 !important;
-
-    overflow: hidden !important;
 }
 
-[data-testid="stFileUploaderDropzone"] button::before {
+
+/*
+실제 Browse 버튼에만 '사진 선택' 표시
+*/
+
+[data-testid="stFileUploaderDropzone"] > button::before {
     content: "사진 선택" !important;
 
     display: block !important;
@@ -727,13 +739,19 @@ label,
     white-space: nowrap !important;
 }
 
-[data-testid="stFileUploaderDropzone"] svg {
+
+/*
+드롭존 기본 업로드 아이콘만 제거
+*/
+
+[data-testid="stFileUploaderDropzone"] > svg {
     display: none !important;
 }
 
-[data-testid="stFileUploaderDropzone"] [data-testid="stIconMaterial"] {
-    display: none !important;
-}
+
+/*
+안내 문구
+*/
 
 [data-testid="stFileUploaderDropzoneInstructions"] {
     color: #758B9C !important;
@@ -966,7 +984,6 @@ label,
 
 /* =====================================================
    METRIC
-   총 소비 / 아낀 금액 / 구매하지 않음
    ===================================================== */
 
 [data-testid="stMetric"] {
@@ -987,9 +1004,6 @@ label,
         rgba(25,104,165,0.055);
 }
 
-
-/* 라벨 */
-
 [data-testid="stMetricLabel"],
 [data-testid="stMetricLabel"] *,
 [data-testid="stMetricLabel"] p {
@@ -1006,9 +1020,6 @@ label,
 
     letter-spacing: -0.04em !important;
 }
-
-
-/* 숫자 */
 
 [data-testid="stMetricValue"],
 [data-testid="stMetricValue"] *,
@@ -1044,10 +1055,6 @@ label,
     letter-spacing: -0.03em !important;
 }
 
-
-/* =====================================================
-   NUMBER INPUT + 기타 위젯
-   ===================================================== */
 
 [data-testid="stNumberInput"] input {
     font-weight: 650 !important;
@@ -1208,7 +1215,7 @@ label,
     }
 
 
-    [data-testid="stFileUploaderDropzone"] button {
+    [data-testid="stFileUploaderDropzone"] > button {
         width: 92px !important;
 
         min-width: 92px !important;
@@ -1219,7 +1226,7 @@ label,
     }
 
 
-    [data-testid="stFileUploaderDropzone"] button::before {
+    [data-testid="stFileUploaderDropzone"] > button::before {
         font-size: 12px !important;
     }
 
@@ -1706,12 +1713,12 @@ def read_url(url):
 
 
 # =========================================================
-# 9. GEMINI RETRY
+# 9. GEMINI 자동 재시도
 # =========================================================
 
 def generate_with_retry(
     contents,
-    retries=3
+    retries=5
 ):
 
     if gemini is None:
@@ -1722,13 +1729,11 @@ def generate_with_retry(
 
     last_error = None
 
-    for i in range(
-        retries
-    ):
+    for i in range(retries):
 
         try:
 
-            return (
+            response = (
                 gemini
                 .models
                 .generate_content(
@@ -1739,6 +1744,13 @@ def generate_with_retry(
                         contents
                 )
             )
+
+            if response is None:
+                raise Exception(
+                    "Empty Gemini response"
+                )
+
+            return response
 
         except Exception as e:
 
@@ -1755,6 +1767,11 @@ def generate_with_retry(
                 or "high demand" in msg
                 or "429" in msg
                 or "resource exhausted" in msg
+                or "500" in msg
+                or "internal" in msg
+                or "timeout" in msg
+                or "timed out" in msg
+                or "temporarily" in msg
             )
 
             if (
@@ -1762,8 +1779,11 @@ def generate_with_retry(
                 and i < retries - 1
             ):
 
+                # 2초 → 4초 → 6초 → 8초
+                wait_seconds = 2 * (i + 1)
+
                 time.sleep(
-                    2 * (i + 1)
+                    wait_seconds
                 )
 
                 continue
@@ -1925,7 +1945,8 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
 
     response = (
         generate_with_retry(
-            contents
+            contents,
+            retries=5
         )
     )
 
@@ -2371,7 +2392,8 @@ elif page == "구매체크":
             try:
 
                 with st.spinner(
-                    "체키가 구매 화면을 분석하고 있어요..."
+                    "체키가 구매 화면을 분석하고 있어요. "
+                    "일시적인 오류가 생기면 자동으로 다시 시도합니다..."
                 ):
 
                     result = (
@@ -2460,11 +2482,18 @@ elif page == "구매체크":
                     or "unavailable" in error_text
 
                     or "429" in error_text
+
+                    or "resource exhausted" in error_text
+
+                    or "500" in error_text
+
+                    or "timeout" in error_text
                 ):
 
                     st.error(
-                        "현재 AI 사용량이 많아요. "
-                        "잠시 후 다시 분석해주세요."
+                        "AI 서버가 계속 혼잡해서 "
+                        "자동 재시도를 완료하지 못했어요. "
+                        "잠시 뒤 분석 버튼을 한 번만 다시 눌러주세요."
                     )
 
                 else:
