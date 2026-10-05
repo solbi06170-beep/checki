@@ -9,6 +9,9 @@ from bs4 import BeautifulSoup
 import re
 import time
 import os
+import base64
+from io import BytesIO
+import html
 
 
 # =========================================================
@@ -34,7 +37,7 @@ def iso_now():
 
 
 # =========================================================
-# 1. 마스코트
+# 1. 마스코트 설정
 # =========================================================
 
 MASCOT_SCAN = "checki_mascot_scan.png"
@@ -43,16 +46,88 @@ MASCOT_WAIT = "checki_mascot_wait.png"
 MASCOT_CHART = "checki_mascot_chart.png"
 
 
-def show_mascot(path, width=150):
+def image_to_base64(path):
     """
-    마스코트 PNG를 가운데 정렬하여 표시.
-    파일이 아직 GitHub에 없더라도 앱 전체가 죽지 않도록 처리.
+    PNG 파일을 base64로 변환.
+    HTML 안에서 마스코트 크기와 정렬을 정확하게 통제하기 위해 사용.
     """
-    if os.path.exists(path):
-        left, center, right = st.columns([1, 0.8, 1])
+    if not os.path.exists(path):
+        return None
 
-        with center:
-            st.image(path, width=width)
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        return None
+
+
+def show_mascot(path, size=150, extra_class=""):
+    """
+    모든 마스코트를 동일한 정사각형 슬롯 안에 표시한다.
+    원본 PNG 비율/여백이 달라도 화면상 위치와 영역이 동일하게 유지된다.
+    """
+
+    encoded = image_to_base64(path)
+
+    if not encoded:
+        return
+
+    st.markdown(
+        f"""
+        <div class="mascot-stage {extra_class}">
+            <div class="mascot-box" style="--mascot-size:{size}px;">
+                <img
+                    src="data:image/png;base64,{encoded}"
+                    class="checki-mascot"
+                    alt="CHECKI mascot"
+                >
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def show_uploaded_preview(image):
+    """
+    사용자가 올린 쇼핑 스크린샷 전용 미리보기.
+    마스코트 CSS와 완전히 분리한다.
+    """
+
+    try:
+        img = image.copy()
+
+        if img.mode not in ("RGB", "RGBA"):
+            img = img.convert("RGB")
+
+        buffer = BytesIO()
+
+        if img.mode == "RGBA":
+            img.save(buffer, format="PNG")
+            mime = "image/png"
+        else:
+            img.save(buffer, format="JPEG", quality=90)
+            mime = "image/jpeg"
+
+        encoded = base64.b64encode(
+            buffer.getvalue()
+        ).decode("utf-8")
+
+        st.markdown(
+            f"""
+            <div class="preview-stage">
+                <img
+                    src="data:{mime};base64,{encoded}"
+                    class="uploaded-preview"
+                    alt="업로드한 쇼핑 화면"
+                >
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    except Exception:
+        st.image(image, width=320)
 
 
 # =========================================================
@@ -118,7 +193,7 @@ footer {
 
 
 /* =====================================================
-   전체
+   전체 화면
    ===================================================== */
 
 html,
@@ -170,10 +245,10 @@ div {
 
 [data-testid="stMainBlockContainer"],
 .block-container {
-    padding-top: 0.25rem !important;
+    padding-top: 0.2rem !important;
     padding-bottom: 4rem !important;
     margin-top: 0 !important;
-    max-width: 980px !important;
+    max-width: 920px !important;
 }
 
 
@@ -184,7 +259,7 @@ div {
 .checki-header {
     width: 100%;
     text-align: center;
-    padding: 16px 0 8px 0;
+    padding: 15px 0 6px 0;
     margin: 0;
 }
 
@@ -193,7 +268,7 @@ div {
     align-items: center;
     justify-content: center;
 
-    gap: 10px;
+    gap: 9px;
 
     font-size: 32px;
     line-height: 1;
@@ -207,7 +282,7 @@ div {
         "SUIT",
         sans-serif !important;
 
-    color: #1689F8;
+    color: var(--blue);
 
     font-weight: 900;
 
@@ -215,30 +290,23 @@ div {
 }
 
 .checki-divider {
-    color: #B9CDDD;
+    color: #BDD0DE;
 
     font-weight: 700;
 
-    font-size: 27px;
-
-    transform: translateY(-1px);
+    font-size: 25px;
 }
 
 .checki-brand-ko {
-    font-family:
-        "SUIT",
-        "Pretendard",
-        sans-serif !important;
-
-    color: #172C3F;
+    color: var(--navy);
 
     font-weight: 900;
 
-    letter-spacing: -0.085em;
+    letter-spacing: -0.08em;
 }
 
 .checki-tagline {
-    margin-top: 8px;
+    margin-top: 7px;
 
     color: #91A3B1;
 
@@ -270,11 +338,9 @@ div[data-testid="stRadio"] > div {
 
 div[role="radiogroup"] {
     display: flex !important;
-
     justify-content: center !important;
 
     width: fit-content !important;
-
     max-width: 100% !important;
 
     margin: 0 auto !important;
@@ -283,11 +349,9 @@ div[role="radiogroup"] {
 
     padding: 4px 7px;
 
-    background:
-        rgba(255,255,255,0.94);
+    background: rgba(255,255,255,0.94);
 
-    border:
-        1px solid #E1ECF5;
+    border: 1px solid #E1ECF5;
 
     border-radius: 999px;
 
@@ -299,17 +363,13 @@ div[role="radiogroup"] {
 div[role="radiogroup"] label {
     flex: none !important;
 
-    padding:
-        3px 6px !important;
+    padding: 3px 6px !important;
 
-    font-size:
-        13px !important;
+    font-size: 13px !important;
 
-    font-weight:
-        700 !important;
+    font-weight: 700 !important;
 
-    letter-spacing:
-        -0.03em !important;
+    letter-spacing: -0.03em !important;
 }
 
 
@@ -321,15 +381,14 @@ div[role="radiogroup"] label {
     text-align: center;
 
     padding:
-        36px 8px
-        10px 8px;
+        34px 8px
+        8px 8px;
 }
 
 .hero-title {
     color: var(--navy);
 
     font-size: 30px;
-
     line-height: 1.3;
 
     font-weight: 900;
@@ -342,12 +401,11 @@ div[role="radiogroup"] label {
 }
 
 .hero-desc {
-    margin-top: 10px;
+    margin-top: 9px;
 
     color: #788D9E;
 
     font-size: 14px;
-
     line-height: 1.65;
 
     font-weight: 500;
@@ -357,20 +415,93 @@ div[role="radiogroup"] label {
 
 
 /* =====================================================
-   마스코트 주변 Streamlit 이미지
+   MASCOT
+   모든 마스코트의 실제 표시 영역 통일
    ===================================================== */
 
-/*
-st.image 자체에는 전역 크기를 강제로 주지 않는다.
-각 이미지의 width는 Python에서 직접 지정한다.
-*/
+.mascot-stage {
+    width: 100%;
 
-[data-testid="stImage"] {
-    text-align: center !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    margin:
+        3px auto
+        13px auto;
+
+    padding: 0;
+
+    text-align: center;
 }
 
-[data-testid="stImage"] img {
-    object-fit: contain !important;
+.mascot-box {
+    width: var(--mascot-size);
+    height: var(--mascot-size);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    overflow: hidden;
+
+    margin: 0 auto;
+    padding: 0;
+}
+
+.checki-mascot {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+    object-position: center center;
+
+    margin: 0 auto;
+    padding: 0;
+
+    border: 0;
+
+    background: transparent;
+
+    filter:
+        drop-shadow(
+            0 6px 10px
+            rgba(32, 102, 160, 0.07)
+        );
+}
+
+
+/* 분석 결과 위 캐릭터 */
+
+.result-mascot {
+    margin-top: 18px;
+    margin-bottom: 3px;
+}
+
+
+/* 30분 캐릭터 */
+
+.wait-mascot {
+    margin-top: 22px;
+    margin-bottom: 1px;
+}
+
+
+/* 소비분석 캐릭터 */
+
+.chart-mascot {
+    margin-top: 2px;
+    margin-bottom: 12px;
+}
+
+
+/* MY의 작은 캐릭터 */
+
+.my-wait-mascot {
+    margin-top: 4px;
+    margin-bottom: 4px;
 }
 
 
@@ -385,14 +516,11 @@ st.image 자체에는 전역 크기를 강제로 주지 않는다.
     border:
         1px solid var(--border);
 
-    border-radius:
-        20px;
+    border-radius: 20px;
 
-    padding:
-        20px;
+    padding: 20px;
 
-    margin:
-        12px 0;
+    margin: 12px 0;
 
     box-shadow:
         0 8px 27px
@@ -406,11 +534,9 @@ st.image 자체에는 전역 크기를 강제로 주지 않는다.
 
     font-weight: 850;
 
-    letter-spacing:
-        -0.04em;
+    letter-spacing: -0.04em;
 
-    margin-bottom:
-        6px;
+    margin-bottom: 6px;
 }
 
 .card-desc {
@@ -422,24 +548,21 @@ st.image 자체에는 전역 크기를 강제로 주지 않는다.
 
     font-weight: 500;
 
-    letter-spacing:
-        -0.02em;
+    letter-spacing: -0.02em;
 }
 
 
 /* =====================================================
-   FORM LABEL
+   FORM
    ===================================================== */
 
 label,
 [data-testid="stWidgetLabel"] {
     font-weight: 700 !important;
 
-    letter-spacing:
-        -0.025em !important;
+    letter-spacing: -0.025em !important;
 
-    color:
-        #294154 !important;
+    color: #294154 !important;
 }
 
 
@@ -450,131 +573,223 @@ label,
 .stTextInput input,
 .stNumberInput input,
 .stTextArea textarea {
-    border-radius:
-        13px !important;
+    border-radius: 13px !important;
 
-    border-color:
-        #DFE9F1 !important;
+    border-color: #DFE9F1 !important;
 
     background:
         rgba(247,249,251,0.94) !important;
 
-    font-size:
-        14px !important;
+    font-size: 14px !important;
 
-    min-height:
-        44px !important;
+    min-height: 44px !important;
 }
 
 [data-baseweb="select"] > div {
-    border-radius:
-        13px !important;
+    border-radius: 13px !important;
 
-    border-color:
-        #DFE9F1 !important;
+    border-color: #DFE9F1 !important;
 
     background:
         rgba(247,249,251,0.94) !important;
 
-    min-height:
-        44px !important;
+    min-height: 44px !important;
 }
 
 
 /* =====================================================
    FILE UPLOADER
-   중요:
-   가짜 ::after 글자를 완전히 제거.
-   Streamlit 원래 버튼을 그대로 사용.
+   upload/upload 겹침 수정
    ===================================================== */
 
 [data-testid="stFileUploader"] {
-    border-radius:
-        16px !important;
+    border-radius: 16px !important;
 }
 
 [data-testid="stFileUploaderDropzone"] {
-    background:
-        #F7F9FB !important;
+    background: #F7F9FB !important;
 
     border:
         1px dashed #CBDCE9 !important;
 
-    border-radius:
-        16px !important;
+    border-radius: 16px !important;
 
-    min-height:
-        92px !important;
+    min-height: 90px !important;
 
-    padding:
-        15px 18px !important;
+    padding: 14px 18px !important;
 }
 
 
-/*
-기존 코드의
-button { font-size:0 }
-button::after { content:"사진 선택" }
-부분을 삭제했다.
-
-따라서 uploadUpload사진 선택 겹침이 발생하지 않는다.
-*/
+/* 버튼 자체 */
 
 [data-testid="stFileUploaderDropzone"] button {
-    min-width:
-        100px !important;
+    position: relative !important;
 
-    min-height:
-        40px !important;
+    display: flex !important;
 
-    padding:
-        0 15px !important;
+    align-items: center !important;
+    justify-content: center !important;
 
-    border-radius:
-        11px !important;
+    width: 104px !important;
+    min-width: 104px !important;
 
-    background:
-        #FFFFFF !important;
+    height: 40px !important;
+    min-height: 40px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    overflow: hidden !important;
+
+    border-radius: 11px !important;
+
+    background: #FFFFFF !important;
 
     border:
         1px solid #D6E3ED !important;
 
-    color:
-        #294154 !important;
-
-    font-size:
-        12px !important;
-
-    font-weight:
-        700 !important;
-
     box-shadow:
         0 3px 10px
         rgba(37,91,130,0.04) !important;
+
+    color: transparent !important;
+
+    font-size: 0 !important;
+
+    line-height: 0 !important;
 }
 
+
+/*
+Streamlit 버튼 내부의 기본 텍스트,
+아이콘, material icon 등을 모두 제거
+*/
+
+[data-testid="stFileUploaderDropzone"] button > * {
+    display: none !important;
+
+    visibility: hidden !important;
+
+    width: 0 !important;
+    height: 0 !important;
+
+    overflow: hidden !important;
+}
+
+
+/* 버튼에 우리가 원하는 글자 하나만 출력 */
+
+[data-testid="stFileUploaderDropzone"] button::before {
+    content: "사진 선택" !important;
+
+    display: block !important;
+
+    visibility: visible !important;
+
+    position: absolute !important;
+
+    left: 50% !important;
+    top: 50% !important;
+
+    transform:
+        translate(-50%, -50%) !important;
+
+    width: max-content !important;
+    height: auto !important;
+
+    color: #294154 !important;
+
+    font-family:
+        "SUIT",
+        "Pretendard",
+        sans-serif !important;
+
+    font-size: 13px !important;
+
+    font-weight: 750 !important;
+
+    line-height: 1 !important;
+
+    letter-spacing: -0.02em !important;
+
+    white-space: nowrap !important;
+}
+
+
+/* 업로드 아이콘 제거 */
+
+[data-testid="stFileUploaderDropzone"] svg {
+    display: none !important;
+}
+
+
+/* material icon 문자까지 제거 */
+
+[data-testid="stFileUploaderDropzone"] [data-testid="stIconMaterial"] {
+    display: none !important;
+}
+
+
+/* 오른쪽 안내 문구 */
+
 [data-testid="stFileUploaderDropzoneInstructions"] {
-    color:
-        #758B9C !important;
+    color: #758B9C !important;
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] span {
-    color:
-        #758B9C !important;
+    color: #758B9C !important;
 
-    font-size:
-        13px !important;
+    font-size: 12px !important;
 
-    font-weight:
-        600 !important;
+    font-weight: 600 !important;
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] small {
-    color:
-        #9AABB8 !important;
+    color: #9AABB8 !important;
 
-    font-size:
-        11px !important;
+    font-size: 10px !important;
+}
+
+
+/* =====================================================
+   업로드한 쇼핑 스크린샷
+   마스코트와 완전히 별도
+   ===================================================== */
+
+.preview-stage {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    margin:
+        13px auto
+        17px auto;
+}
+
+.uploaded-preview {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: 340px;
+    max-height: 420px;
+
+    object-fit: contain;
+
+    margin: 0 auto;
+
+    border-radius: 16px;
+
+    border:
+        1px solid #E4EDF4;
+
+    box-shadow:
+        0 7px 22px
+        rgba(22,83,132,0.09);
 }
 
 
@@ -583,14 +798,11 @@ button::after { content:"사진 선택" }
    ===================================================== */
 
 .stButton > button {
-    min-height:
-        47px !important;
+    min-height: 47px !important;
 
-    border-radius:
-        13px !important;
+    border-radius: 13px !important;
 
-    font-weight:
-        750 !important;
+    font-weight: 750 !important;
 
     letter-spacing:
         -0.025em !important;
@@ -613,11 +825,9 @@ button::after { content:"사진 선택" }
             #42AAFF
         ) !important;
 
-    color:
-        white !important;
+    color: white !important;
 
-    border:
-        none !important;
+    border: none !important;
 
     box-shadow:
         0 6px 17px
@@ -632,81 +842,63 @@ button::after { content:"사진 선택" }
 .result-low,
 .result-medium,
 .result-high {
-    border-radius:
-        19px;
+    border-radius: 19px;
 
-    padding:
-        20px;
+    padding: 20px;
 
-    margin-top:
-        17px;
+    margin-top: 9px;
 
-    line-height:
-        1.65;
+    line-height: 1.65;
 
-    letter-spacing:
-        -0.02em;
+    letter-spacing: -0.02em;
 }
 
 .result-low {
-    background:
-        #EFFBF5;
+    background: #EFFBF5;
 
     border:
         1px solid #C8EEDB;
 }
 
 .result-medium {
-    background:
-        #FFF9E9;
+    background: #FFF9E9;
 
     border:
         1px solid #F3DEA1;
 }
 
 .result-high {
-    background:
-        #FFF1F1;
+    background: #FFF1F1;
 
     border:
         1px solid #F2C5C5;
 }
 
 .risk-title {
-    color:
-        #18344B;
+    color: #18344B;
 
-    font-size:
-        20px;
+    font-size: 20px;
 
-    font-weight:
-        850;
+    font-weight: 850;
 
-    letter-spacing:
-        -0.04em;
+    letter-spacing: -0.04em;
 }
 
 .price-box {
-    background:
-        #F1F8FF;
+    background: #F1F8FF;
 
     border:
         1px solid #D8EAFB;
 
-    border-radius:
-        15px;
+    border-radius: 15px;
 
-    padding:
-        15px 17px;
+    padding: 15px 17px;
 
-    margin:
-        12px 0;
+    margin: 12px 0;
 
-    color:
-        #526E83;
+    color: #526E83;
 
-    font-size:
-        13px;
+    font-size: 13px;
 }
 
 
@@ -718,32 +910,28 @@ button::after { content:"사진 선택" }
     text-align: center;
 
     margin:
-        4px 0 10px 0;
+        2px 0
+        12px 0;
 }
 
 .section-title {
-    color:
-        #19364D;
+    color: #19364D;
 
-    font-size:
-        19px;
+    font-size: 19px;
 
-    font-weight:
-        850;
+    font-weight: 850;
 
-    letter-spacing:
-        -0.045em;
+    letter-spacing: -0.045em;
 }
 
 .section-desc {
-    color:
-        #7A90A1;
+    color: #7A90A1;
 
-    font-size:
-        13px;
+    font-size: 13px;
 
-    margin-top:
-        5px;
+    line-height: 1.6;
+
+    margin-top: 5px;
 }
 
 
@@ -753,16 +941,14 @@ button::after { content:"사진 선택" }
 
 [data-testid="stMetric"] {
     background:
-        rgba(255,255,255,0.94);
+        rgba(255,255,255,0.95);
 
     border:
         1px solid #E3EDF5;
 
-    border-radius:
-        17px;
+    border-radius: 17px;
 
-    padding:
-        15px;
+    padding: 15px;
 
     box-shadow:
         0 5px 18px
@@ -781,103 +967,81 @@ button::after { content:"사진 선택" }
     [data-testid="stDecoration"],
     [data-testid="stStatusWidget"],
     header {
-        display:
-            none !important;
+        display: none !important;
 
-        visibility:
-            hidden !important;
+        visibility: hidden !important;
 
-        height:
-            0 !important;
+        height: 0 !important;
 
-        min-height:
-            0 !important;
+        min-height: 0 !important;
 
-        max-height:
-            0 !important;
+        max-height: 0 !important;
 
-        margin:
-            0 !important;
+        margin: 0 !important;
 
-        padding:
-            0 !important;
+        padding: 0 !important;
     }
 
 
     html,
     body,
     .stApp {
-        margin:
-            0 !important;
+        margin: 0 !important;
 
-        padding:
-            0 !important;
+        padding: 0 !important;
 
-        overflow-x:
-            hidden !important;
+        overflow-x: hidden !important;
     }
 
 
     [data-testid="stAppViewContainer"],
     [data-testid="stMain"] {
-        margin-top:
-            0 !important;
+        margin-top: 0 !important;
 
-        padding-top:
-            0 !important;
+        padding-top: 0 !important;
     }
 
 
     [data-testid="stMainBlockContainer"],
     .block-container {
-        margin-top:
-            0 !important;
+        margin-top: 0 !important;
 
-        padding-top:
-            0 !important;
+        padding-top: 0 !important;
 
-        padding-left:
-            0.9rem !important;
+        padding-left: 0.9rem !important;
 
-        padding-right:
-            0.9rem !important;
+        padding-right: 0.9rem !important;
     }
 
 
     .checki-header {
         padding:
             10px 0
-            6px 0 !important;
+            5px 0 !important;
     }
 
 
     .checki-brand {
-        font-size:
-            28px !important;
+        font-size: 28px !important;
 
-        gap:
-            7px !important;
+        gap: 7px !important;
     }
 
 
     .checki-divider {
-        font-size:
-            22px !important;
+        font-size: 22px !important;
     }
 
 
     .checki-tagline {
-        margin-top:
-            6px !important;
+        margin-top: 6px !important;
 
-        font-size:
-            7px !important;
+        font-size: 7px !important;
     }
 
 
     div[role="radiogroup"] {
-        margin-top:
-            0 !important;
+        margin-top: 0 !important;
 
         padding:
             3px 5px !important;
@@ -885,8 +1049,7 @@ button::after { content:"사진 선택" }
 
 
     div[role="radiogroup"] label {
-        font-size:
-            11.5px !important;
+        font-size: 11.5px !important;
 
         padding:
             2px 3px !important;
@@ -895,74 +1058,96 @@ button::after { content:"사진 선택" }
 
     .hero {
         padding:
-            28px 5px
-            8px 5px !important;
+            27px 5px
+            7px 5px !important;
     }
 
 
     .hero-title {
-        font-size:
-            25px !important;
+        font-size: 25px !important;
     }
 
 
     .hero-desc {
-        font-size:
-            13px !important;
+        font-size: 13px !important;
 
-        margin-top:
-            8px !important;
+        margin-top: 8px !important;
+    }
+
+
+    /*
+    PC에서 150px인 모든 기본 마스코트를
+    모바일에서는 125px 슬롯 안에 통일.
+    */
+
+    .mascot-box {
+        width: 125px !important;
+        height: 125px !important;
+    }
+
+
+    .my-wait-mascot .mascot-box {
+        width: 100px !important;
+        height: 100px !important;
+    }
+
+
+    .mascot-stage {
+        margin-bottom: 9px !important;
     }
 
 
     .checki-card {
-        padding:
-            17px !important;
+        padding: 17px !important;
 
-        border-radius:
-            18px !important;
+        border-radius: 18px !important;
     }
 
 
     [data-testid="stFileUploaderDropzone"] {
-        min-height:
-            85px !important;
+        min-height: 82px !important;
 
-        padding:
-            12px !important;
+        padding: 11px 12px !important;
     }
 
 
     [data-testid="stFileUploaderDropzone"] button {
-        min-width:
-            86px !important;
+        width: 92px !important;
 
-        min-height:
-            38px !important;
+        min-width: 92px !important;
 
-        padding:
-            0 10px !important;
+        height: 38px !important;
 
-        font-size:
-            11px !important;
+        min-height: 38px !important;
+    }
+
+
+    [data-testid="stFileUploaderDropzone"] button::before {
+        font-size: 12px !important;
     }
 
 
     [data-testid="stFileUploaderDropzoneInstructions"] span {
-        font-size:
-            11px !important;
+        font-size: 11px !important;
     }
 
 
     [data-testid="stFileUploaderDropzoneInstructions"] small {
-        font-size:
-            9px !important;
+        font-size: 9px !important;
+    }
+
+
+    .uploaded-preview {
+        max-width: 245px !important;
+
+        max-height: 330px !important;
+
+        border-radius: 14px !important;
     }
 
 
     [data-testid="stMetric"] {
-        padding:
-            10px !important;
+        padding: 10px !important;
     }
 }
 
@@ -1040,7 +1225,9 @@ if "user_id" not in st.session_state:
 
         else:
 
-            uid = str(uuid.uuid4())
+            uid = str(
+                uuid.uuid4()
+            )
 
             st.session_state["user_id"] = uid
 
@@ -1130,10 +1317,17 @@ def add_expense(
     try:
 
         data = {
-            "user_id": user_id,
-            "category": category,
-            "item_name": item_name,
-            "amount": int(amount),
+            "user_id":
+                user_id,
+
+            "category":
+                category,
+
+            "item_name":
+                item_name,
+
+            "amount":
+                int(amount),
 
             "purchased_at":
                 now_kst()
@@ -1406,7 +1600,9 @@ def generate_with_retry(
 
     last_error = None
 
-    for i in range(retries):
+    for i in range(
+        retries
+    ):
 
         try:
 
@@ -1647,9 +1843,7 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
         "HIGH"
     ]:
 
-        risk_level = (
-            "MEDIUM"
-        )
+        risk_level = "MEDIUM"
 
     risk_score = (
         parse_score(
@@ -1718,12 +1912,27 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
 
 header_html = (
     '<div class="checki-header">'
+
     '<div class="checki-brand">'
-    '<span class="checki-brand-en">CHECKI</span>'
-    '<span class="checki-divider">|</span>'
-    '<span class="checki-brand-ko">체키</span>'
+
+    '<span class="checki-brand-en">'
+    'CHECKI'
+    '</span>'
+
+    '<span class="checki-divider">'
+    '|'
+    '</span>'
+
+    '<span class="checki-brand-ko">'
+    '체키'
+    '</span>'
+
     '</div>'
-    '<div class="checki-tagline">CHECK BEFORE YOU BUY</div>'
+
+    '<div class="checki-tagline">'
+    'CHECK BEFORE YOU BUY'
+    '</div>'
+
     '</div>'
 )
 
@@ -1762,6 +1971,7 @@ if page == "홈":
 
     hero_html = (
         '<div class="hero">'
+
         '<div class="hero-title">'
         '사기 전에, '
         '<span class="hero-blue">체키</span> '
@@ -1772,6 +1982,7 @@ if page == "홈":
         '쇼핑 화면이나 링크를 분석해<br>'
         '나도 모르게 구매를 유도하는 요소를 찾아드려요.'
         '</div>'
+
         '</div>'
     )
 
@@ -1781,32 +1992,46 @@ if page == "홈":
     )
 
 
-    # 홈에서는 별도 main 마스코트를 사용하지 않는다.
-    # 대신 서비스 기능을 깔끔하게 보여준다.
-
     cards_html = (
         '<div class="checki-card">'
-        '<div class="card-title">🔎 구매 전 AI 체크</div>'
+
+        '<div class="card-title">'
+        '🔎 구매 전 AI 체크'
+        '</div>'
+
         '<div class="card-desc">'
         '상품 페이지의 할인·재고·시간 압박 등 '
         '구매를 재촉하는 요소를 AI가 분석합니다.'
         '</div>'
+
         '</div>'
 
+
         '<div class="checki-card">'
-        '<div class="card-title">⏱️ 30분 생각하기</div>'
+
+        '<div class="card-title">'
+        '⏱️ 30분 생각하기'
+        '</div>'
+
         '<div class="card-desc">'
         '바로 결제하지 않고 잠시 멈춰 '
         '정말 필요한 소비인지 다시 판단할 수 있습니다.'
         '</div>'
+
         '</div>'
 
+
         '<div class="checki-card">'
-        '<div class="card-title">📊 소비 기록 확인</div>'
+
+        '<div class="card-title">'
+        '📊 소비 기록 확인'
+        '</div>'
+
         '<div class="card-desc">'
         '구매한 금액과 구매하지 않아 아낀 금액을 '
         '한눈에 확인할 수 있습니다.'
         '</div>'
+
         '</div>'
     )
 
@@ -1824,6 +2049,7 @@ elif page == "구매체크":
 
     purchase_hero = (
         '<div class="hero">'
+
         '<div class="hero-title">'
         '구매 전 '
         '<span class="hero-blue">체키</span>'
@@ -1832,6 +2058,7 @@ elif page == "구매체크":
         '<div class="hero-desc">'
         '쇼핑 화면을 캡처하거나 상품 링크를 넣어주세요.'
         '</div>'
+
         '</div>'
     )
 
@@ -1842,18 +2069,19 @@ elif page == "구매체크":
 
 
     # -----------------------------------------------------
-    # 구매체크 기본 마스코트
+    # 구매체크 마스코트
     # -----------------------------------------------------
 
     show_mascot(
         MASCOT_SCAN,
-        width=135
+        size=150
     )
 
 
     product_name = (
         st.text_input(
             "상품명",
+
             placeholder=
                 "예: 무선 이어폰"
         )
@@ -1932,32 +2160,9 @@ elif page == "구매체크":
             )
 
 
-            image_width = (
+            show_uploaded_preview(
                 uploaded_image
-                .size[0]
             )
-
-
-            preview_width = min(
-                340,
-                image_width
-            )
-
-
-            # 쇼핑 스크린샷 미리보기
-            left, center, right = (
-                st.columns(
-                    [1, 1.5, 1]
-                )
-            )
-
-            with center:
-
-                st.image(
-                    uploaded_image,
-                    width=
-                        preview_width
-                )
 
 
     # -----------------------------------------------------
@@ -2142,17 +2347,13 @@ elif page == "구매체크":
 
 
                 if (
-                    "503"
-                    in error_text
+                    "503" in error_text
 
-                    or "high demand"
-                    in error_text
+                    or "high demand" in error_text
 
-                    or "unavailable"
-                    in error_text
+                    or "unavailable" in error_text
 
-                    or "429"
-                    in error_text
+                    or "429" in error_text
                 ):
 
                     st.error(
@@ -2184,10 +2385,10 @@ elif page == "구매체크":
         )
 
 
-        # 분석 완료용 돋보기 마스코트
         show_mascot(
             MASCOT_SEARCH,
-            width=145
+            size=150,
+            extra_class="result-mascot"
         )
 
 
@@ -2231,6 +2432,31 @@ elif page == "구매체크":
             )
 
 
+        safe_summary = html.escape(
+            str(
+                result[
+                    "summary"
+                ]
+            )
+        )
+
+        safe_detected = html.escape(
+            str(
+                result[
+                    "detected"
+                ]
+            )
+        )
+
+        safe_advice = html.escape(
+            str(
+                result[
+                    "advice"
+                ]
+            )
+        )
+
+
         result_html = (
             f'<div class="{css_class}">'
 
@@ -2245,17 +2471,17 @@ elif page == "구매체크":
 
             f'<div style="margin-top:15px;">'
             f'<b>체키 한줄 요약</b><br>'
-            f'{result["summary"]}'
+            f'{safe_summary}'
             f'</div>'
 
             f'<div style="margin-top:15px;">'
             f'<b>발견된 요소</b><br>'
-            f'{result["detected"]}'
+            f'{safe_detected}'
             f'</div>'
 
             f'<div style="margin-top:15px;">'
             f'<b>체키의 제안</b><br>'
-            f'{result["advice"]}'
+            f'{safe_advice}'
             f'</div>'
 
             f'</div>'
@@ -2277,7 +2503,9 @@ elif page == "구매체크":
 
             price_html = (
                 '<div class="price-box">'
+
                 'AI가 화면에서 확인한 가격'
+
                 '<br>'
 
                 '<span style="'
@@ -2290,6 +2518,7 @@ elif page == "구매체크":
                 f'{result["price"]:,}원'
 
                 '</span>'
+
                 '</div>'
             )
 
@@ -2312,29 +2541,26 @@ elif page == "구매체크":
         # 30분 생각하기
         # -------------------------------------------------
 
-        st.markdown(
-            "<br>",
-            unsafe_allow_html=True
-        )
-
-
         show_mascot(
             MASCOT_WAIT,
-            width=130
+            size=150,
+            extra_class="wait-mascot"
         )
 
 
         st.markdown(
             """
             <div class="section-center">
+
                 <div class="section-title">
                     30분 생각하기
                 </div>
 
                 <div class="section-desc">
-                    바로 결제하기 전에 잠시 멈춰
+                    바로 결제하기 전에 잠시 멈춰<br>
                     정말 필요한 소비인지 다시 생각해보세요.
                 </div>
+
             </div>
             """,
             unsafe_allow_html=True
@@ -2365,14 +2591,18 @@ elif page == "소비분석":
 
     analysis_hero = (
         '<div class="hero">'
+
         '<div class="hero-title">'
         '나의 '
-        '<span class="hero-blue">소비 분석</span>'
+        '<span class="hero-blue">'
+        '소비 분석'
+        '</span>'
         '</div>'
 
         '<div class="hero-desc">'
         '체키에 저장된 실제 소비 기록을 기준으로 확인합니다.'
         '</div>'
+
         '</div>'
     )
 
@@ -2383,13 +2613,10 @@ elif page == "소비분석":
     )
 
 
-    # -----------------------------------------------------
-    # 소비분석 마스코트
-    # -----------------------------------------------------
-
     show_mascot(
         MASCOT_CHART,
-        width=145
+        size=150,
+        extra_class="chart-mascot"
     )
 
 
@@ -2500,18 +2727,22 @@ elif page == "소비분석":
             )
 
 
-            item_name = (
-                expense.get(
-                    "item_name",
-                    "상품"
+            item_name = html.escape(
+                str(
+                    expense.get(
+                        "item_name",
+                        "상품"
+                    )
                 )
             )
 
 
-            expense_category = (
-                expense.get(
-                    "category",
-                    "기타"
+            expense_category = html.escape(
+                str(
+                    expense.get(
+                        "category",
+                        "기타"
+                    )
                 )
             )
 
@@ -2556,14 +2787,18 @@ elif page == "MY":
 
     my_hero = (
         '<div class="hero">'
+
         '<div class="hero-title">'
         '나의 '
-        '<span class="hero-blue">체키 기록</span>'
+        '<span class="hero-blue">'
+        '체키 기록'
+        '</span>'
         '</div>'
 
         '<div class="hero-desc">'
         '구매하기 전 한 번 멈춰본 기록을 확인해보세요.'
         '</div>'
+
         '</div>'
     )
 
@@ -2592,19 +2827,27 @@ elif page == "MY":
             records[:20]
         ):
 
-            product = (
+            product_raw = (
                 record.get(
                     "product_name",
                     "상품"
                 )
             )
 
+            product = html.escape(
+                str(product_raw)
+            )
 
-            category = (
+
+            category_raw = (
                 record.get(
                     "category",
                     "기타"
                 )
+            )
+
+            category = html.escape(
+                str(category_raw)
             )
 
 
@@ -2625,10 +2868,12 @@ elif page == "MY":
             )
 
 
-            risk = (
-                record.get(
-                    "risk_level",
-                    "MEDIUM"
+            risk = html.escape(
+                str(
+                    record.get(
+                        "risk_level",
+                        "MEDIUM"
+                    )
                 )
             )
 
@@ -2746,13 +2991,17 @@ elif page == "MY":
                         hold_finished = True
 
 
-                # 아직 30분 대기 중
+                # -------------------------------------------------
+                # 아직 대기 중
+                # -------------------------------------------------
+
                 if not hold_finished:
 
-                    # 보류 중인 기록에만 wait 마스코트 표시
                     show_mascot(
                         MASCOT_WAIT,
-                        width=105
+                        size=115,
+                        extra_class=
+                            "my-wait-mascot"
                     )
 
 
@@ -2866,7 +3115,7 @@ elif page == "MY":
 
 
                 # -------------------------------------------------
-                # 실제 결제금액
+                # 실제 결제금액 입력
                 # -------------------------------------------------
 
                 if (
@@ -2913,8 +3162,8 @@ elif page == "MY":
 
                         expense_ok = (
                             add_expense(
-                                category,
-                                product,
+                                category_raw,
+                                product_raw,
                                 actual_amount
                             )
                         )
