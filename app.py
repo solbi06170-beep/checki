@@ -562,83 +562,52 @@ label,
 
 [data-testid="stFileUploaderDropzone"] button {
     position: relative !important;
-
     min-width: 104px !important;
     width: 104px !important;
-
     height: 40px !important;
     min-height: 40px !important;
-
     padding: 0 !important;
-
     border-radius: 11px !important;
-
     background: #FFFFFF !important;
-
-    border:
-        1px solid #D6E3ED !important;
-
-    box-shadow:
-        0 3px 10px
-        rgba(37,91,130,0.04) !important;
-
+    border: 1px solid #D6E3ED !important;
+    box-shadow: 0 3px 10px rgba(37,91,130,0.04) !important;
     overflow: hidden !important;
-
     font-size: 0 !important;
     line-height: 0 !important;
-
     color: transparent !important;
 }
 
 [data-testid="stFileUploaderDropzone"] button > * {
     visibility: hidden !important;
     opacity: 0 !important;
-
     font-size: 0 !important;
-
     width: 0 !important;
     height: 0 !important;
-
     overflow: hidden !important;
 }
 
 [data-testid="stFileUploaderDropzone"] button::after {
     content: "업로드" !important;
-
     visibility: visible !important;
     opacity: 1 !important;
-
     position: absolute !important;
-
     top: 50% !important;
     left: 50% !important;
-
-    transform:
-        translate(-50%, -50%) !important;
-
+    transform: translate(-50%, -50%) !important;
     width: 100% !important;
-
     color: #294154 !important;
-
     font-family:
         "Pretendard Variable",
         "Pretendard",
         -apple-system,
         BlinkMacSystemFont,
         sans-serif !important;
-
     font-size: 13px !important;
-
     line-height: 1 !important;
-
     font-weight: 750 !important;
-
     letter-spacing: -0.03em !important;
-
     text-align: center !important;
-
     white-space: nowrap !important;
-
     pointer-events: none !important;
 }
 
@@ -668,7 +637,6 @@ label,
     display: flex;
     align-items: center;
     justify-content: center;
-
     margin: 13px auto 17px auto;
 }
 
@@ -676,19 +644,13 @@ label,
     display: block;
     width: auto;
     height: auto;
-
     max-width: 340px;
     max-height: 420px;
-
     object-fit: contain;
     margin: 0 auto;
-
     border-radius: 16px;
     border: 1px solid #E4EDF4;
-
-    box-shadow:
-        0 7px 22px
-        rgba(22,83,132,0.09);
+    box-shadow: 0 7px 22px rgba(22,83,132,0.09);
 }
 
 
@@ -708,9 +670,7 @@ label,
     font-size: 14px !important;
     font-weight: 750 !important;
     letter-spacing: -0.035em !important;
-
-    transition:
-        all 0.15s ease !important;
+    transition: all 0.15s ease !important;
 }
 
 .stButton > button p,
@@ -831,10 +791,7 @@ label,
     border-radius: 18px;
     padding: 17px 18px !important;
     min-height: 114px;
-
-    box-shadow:
-        0 7px 22px
-        rgba(25,104,165,0.055);
+    box-shadow: 0 7px 22px rgba(25,104,165,0.055);
 }
 
 [data-testid="stMetricLabel"],
@@ -1403,11 +1360,12 @@ def read_url(url):
 
 # =========================================================
 # 9. GEMINI 자동 재시도
+# 속도 개선: minimal thinking + 최대 2회
 # =========================================================
 
 def generate_with_retry(
     contents,
-    retries=3
+    retries=2
 ):
 
     if gemini is None:
@@ -1426,7 +1384,12 @@ def generate_with_retry(
                 .models
                 .generate_content(
                     model="gemini-3.5-flash",
-                    contents=contents
+                    contents=contents,
+                    config={
+                        "thinking_config": {
+                            "thinking_level": "minimal"
+                        }
+                    }
                 )
             )
 
@@ -1449,35 +1412,17 @@ def generate_with_retry(
         except Exception as e:
 
             last_error = e
-            msg = str(e).lower()
 
-            retryable = (
-                "503" in msg
-                or "unavailable" in msg
-                or "high demand" in msg
-                or "429" in msg
-                or "resource exhausted" in msg
-                or "500" in msg
-                or "internal" in msg
-                or "timeout" in msg
-                or "timed out" in msg
-                or "temporarily" in msg
-            )
+            if i < retries - 1:
 
-            if (
-                retryable
-                and i < retries - 1
-            ):
-
-                # 1차 실패 → 1초 대기
-                # 2차 실패 → 2초 대기
-                time.sleep(i + 1)
+                time.sleep(1)
 
                 continue
 
-            raise
+            raise last_error
 
     raise last_error
+
 
 # =========================================================
 # 10. PARSING
@@ -1625,7 +1570,7 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
 
     response = generate_with_retry(
         contents,
-        retries=5
+        retries=2
     )
 
     result = response.text or ""
@@ -1696,48 +1641,6 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
         "advice": advice,
         "raw": result
     }
-
-
-# =========================================================
-# 11-1. 전체 분석 자동 재시도
-# =========================================================
-
-def analyze_product_with_retry(
-    product_name,
-    category,
-    image=None,
-    page_text=None,
-    retries=5
-):
-
-    last_error = None
-
-    for attempt in range(retries):
-
-        try:
-
-            return analyze_product(
-                product_name=product_name,
-                category=category,
-                image=image,
-                page_text=page_text
-            )
-
-        except Exception as e:
-
-            last_error = e
-
-            if attempt < retries - 1:
-
-                wait_seconds = 2 * (attempt + 1)
-
-                time.sleep(
-                    wait_seconds
-                )
-
-                continue
-
-            raise last_error
 
 
 # =========================================================
@@ -2049,15 +1952,14 @@ elif page == "구매체크":
 
                 with st.spinner(
                     "체키가 구매 화면을 분석하고 있어요. "
-                    "오류가 발생하면 자동으로 다시 분석합니다..."
+                    "오류가 발생하면 한 번 자동으로 다시 시도합니다..."
                 ):
 
-                    result = analyze_product_with_retry(
+                    result = analyze_product(
                         product_name=product_name,
                         category=category,
                         image=uploaded_image,
-                        page_text=page_text,
-                        retries=5
+                        page_text=page_text
                     )
 
 
@@ -2101,7 +2003,7 @@ elif page == "구매체크":
             except Exception:
 
                 st.error(
-                    "AI 분석을 여러 번 자동으로 다시 시도했지만 "
+                    "AI 분석을 자동으로 다시 시도했지만 "
                     "완료하지 못했어요. 잠시 후 분석 버튼을 다시 눌러주세요."
                 )
 
