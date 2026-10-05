@@ -546,7 +546,6 @@ label,
 
 /* =====================================================
    FILE UPLOADER
-   핵심 수정 부분
    ===================================================== */
 
 [data-testid="stFileUploader"] {
@@ -560,16 +559,6 @@ label,
     min-height: 90px !important;
     padding: 14px 18px !important;
 }
-
-
-/*
-   1. Streamlit 기본 Browse files / upload 텍스트를
-      모두 화면에서 숨김
-   2. 버튼 자체는 유지
-   3. 버튼의 ::after에 "업로드" 하나만 표시
-
-   이렇게 해야 uploadUpload 중복이 발생하지 않음.
-*/
 
 [data-testid="stFileUploaderDropzone"] button {
     position: relative !important;
@@ -601,12 +590,6 @@ label,
     color: transparent !important;
 }
 
-
-/*
-   버튼 내부에 Streamlit이 만드는 모든 글자/아이콘을
-   화면에서 숨긴다.
-*/
-
 [data-testid="stFileUploaderDropzone"] button > * {
     visibility: hidden !important;
     opacity: 0 !important;
@@ -618,11 +601,6 @@ label,
 
     overflow: hidden !important;
 }
-
-
-/*
-   실제 사용자에게 보이는 글자는 이것 하나뿐.
-*/
 
 [data-testid="stFileUploaderDropzone"] button::after {
     content: "업로드" !important;
@@ -663,12 +641,6 @@ label,
 
     pointer-events: none !important;
 }
-
-
-/*
-   파일 업로드 영역 안내 문구.
-   여기서는 display/visibility 구조를 건드리지 않음.
-*/
 
 [data-testid="stFileUploaderDropzoneInstructions"] {
     color: #758B9C !important;
@@ -1463,30 +1435,18 @@ def generate_with_retry(
                     "Empty Gemini response"
                 )
 
+            if not getattr(response, "text", None):
+                raise Exception(
+                    "Empty Gemini response text"
+                )
+
             return response
 
         except Exception as e:
 
             last_error = e
-            msg = str(e).lower()
 
-            retryable = (
-                "503" in msg
-                or "unavailable" in msg
-                or "high demand" in msg
-                or "429" in msg
-                or "resource exhausted" in msg
-                or "500" in msg
-                or "internal" in msg
-                or "timeout" in msg
-                or "timed out" in msg
-                or "temporarily" in msg
-            )
-
-            if (
-                retryable
-                and i < retries - 1
-            ):
+            if i < retries - 1:
 
                 wait_seconds = 2 * (i + 1)
 
@@ -1496,9 +1456,7 @@ def generate_with_retry(
 
                 continue
 
-            raise
-
-    raise last_error
+            raise last_error
 
 
 # =========================================================
@@ -1718,6 +1676,48 @@ ADVICE: 구매 전에 확인하면 좋은 점을 짧게 설명
         "advice": advice,
         "raw": result
     }
+
+
+# =========================================================
+# 11-1. 전체 분석 자동 재시도
+# =========================================================
+
+def analyze_product_with_retry(
+    product_name,
+    category,
+    image=None,
+    page_text=None,
+    retries=5
+):
+
+    last_error = None
+
+    for attempt in range(retries):
+
+        try:
+
+            return analyze_product(
+                product_name=product_name,
+                category=category,
+                image=image,
+                page_text=page_text
+            )
+
+        except Exception as e:
+
+            last_error = e
+
+            if attempt < retries - 1:
+
+                wait_seconds = 2 * (attempt + 1)
+
+                time.sleep(
+                    wait_seconds
+                )
+
+                continue
+
+            raise last_error
 
 
 # =========================================================
@@ -2029,14 +2029,15 @@ elif page == "구매체크":
 
                 with st.spinner(
                     "체키가 구매 화면을 분석하고 있어요. "
-                    "일시적인 오류가 생기면 자동으로 다시 시도합니다..."
+                    "오류가 발생하면 자동으로 다시 분석합니다..."
                 ):
 
-                    result = analyze_product(
+                    result = analyze_product_with_retry(
                         product_name=product_name,
                         category=category,
                         image=uploaded_image,
-                        page_text=page_text
+                        page_text=page_text,
+                        retries=5
                     )
 
 
@@ -2077,33 +2078,12 @@ elif page == "구매체크":
                 ] = saved_record
 
 
-            except Exception as e:
+            except Exception:
 
-                error_text = str(e).lower()
-
-
-                if (
-                    "503" in error_text
-                    or "high demand" in error_text
-                    or "unavailable" in error_text
-                    or "429" in error_text
-                    or "resource exhausted" in error_text
-                    or "500" in error_text
-                    or "timeout" in error_text
-                ):
-
-                    st.error(
-                        "AI 서버가 계속 혼잡해서 "
-                        "자동 재시도를 완료하지 못했어요. "
-                        "잠시 뒤 분석 버튼을 한 번만 다시 눌러주세요."
-                    )
-
-                else:
-
-                    st.error(
-                        "분석 중 문제가 발생했습니다. "
-                        "잠시 후 다시 시도해주세요."
-                    )
+                st.error(
+                    "AI 분석을 여러 번 자동으로 다시 시도했지만 "
+                    "완료하지 못했어요. 잠시 후 분석 버튼을 다시 눌러주세요."
+                )
 
 
     if "latest_analysis" in st.session_state:
