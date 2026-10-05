@@ -1359,13 +1359,12 @@ def read_url(url):
 
 
 # =========================================================
-# 9. GEMINI 자동 재시도
-# 속도 개선: minimal thinking + 최대 2회
+# 9. GEMINI 빠른 분석
 # =========================================================
 
 def generate_with_retry(
     contents,
-    retries=2
+    retries=1
 ):
 
     if gemini is None:
@@ -1373,56 +1372,35 @@ def generate_with_retry(
             "Gemini client unavailable"
         )
 
-    last_error = None
+    response = (
+        gemini
+        .models
+        .generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=contents,
+            config={
+                "thinking_config": {
+                    "thinking_level": "minimal"
+                }
+            }
+        )
+    )
 
-    for i in range(retries):
+    if response is None:
+        raise Exception(
+            "Empty Gemini response"
+        )
 
-        try:
+    if not getattr(
+        response,
+        "text",
+        None
+    ):
+        raise Exception(
+            "Empty Gemini response text"
+        )
 
-            response = (
-                gemini
-                .models
-                .generate_content(
-                    model="gemini-3.5-flash",
-                    contents=contents,
-                    config={
-                        "thinking_config": {
-                            "thinking_level": "minimal"
-                        }
-                    }
-                )
-            )
-
-            if response is None:
-                raise Exception(
-                    "Empty Gemini response"
-                )
-
-            if not getattr(
-                response,
-                "text",
-                None
-            ):
-                raise Exception(
-                    "Empty Gemini response text"
-                )
-
-            return response
-
-        except Exception as e:
-
-            last_error = e
-
-            if i < retries - 1:
-
-                time.sleep(1)
-
-                continue
-
-            raise last_error
-
-    raise last_error
-
+    return response
 
 # =========================================================
 # 10. PARSING
