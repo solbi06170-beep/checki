@@ -1184,12 +1184,7 @@ def save_analysis_record(
 
     try:
 
-        hold_started = now_kst()
-
-        hold_until = (
-            hold_started
-            + timedelta(minutes=30)
-        )
+        created_at = now_kst()
 
         data = {
             "user_id": user_id,
@@ -1215,22 +1210,22 @@ def save_analysis_record(
                 ai_result,
 
             "action_text":
-                "30분 생각하기",
+                "선택 대기",
 
             "decision":
-                "HOLD",
+                "PENDING",
 
             "saved_amount":
                 0,
 
             "hold_started_at":
-                hold_started.isoformat(),
+                None,
 
             "hold_until":
-                hold_until.isoformat(),
+                None,
 
             "created_at":
-                hold_started.isoformat()
+                created_at.isoformat()
         }
 
         response = (
@@ -1247,6 +1242,47 @@ def save_analysis_record(
 
     except Exception:
         return None
+
+
+def start_hold(record_id):
+
+    if (
+        supabase is None
+        or record_id is None
+    ):
+        return False
+
+    try:
+
+        hold_started = now_kst()
+
+        hold_until = (
+            hold_started
+            + timedelta(minutes=30)
+        )
+
+        data = {
+            "decision": "HOLD",
+            "action_text": "30분 생각하기",
+            "hold_started_at":
+                hold_started.isoformat(),
+            "hold_until":
+                hold_until.isoformat(),
+            "saved_amount": 0
+        }
+
+        (
+            supabase
+            .table("checki_records")
+            .update(data)
+            .eq("id", record_id)
+            .execute()
+        )
+
+        return True
+
+    except Exception:
+        return False
 
 
 def update_record(
@@ -1401,6 +1437,7 @@ def generate_with_retry(
         )
 
     return response
+
 
 # =========================================================
 # 10. PARSING
@@ -1977,6 +2014,15 @@ elif page == "구매체크":
                     "latest_record"
                 ] = saved_record
 
+                st.session_state[
+                    "latest_category"
+                ] = category
+
+                st.session_state.pop(
+                    "purchase_action",
+                    None
+                )
+
 
             except Exception:
 
@@ -2111,32 +2157,6 @@ elif page == "구매체크":
             )
 
 
-        show_mascot(
-            MASCOT_WAIT,
-            size=150,
-            extra_class="wait-mascot"
-        )
-
-
-        st.markdown(
-            """
-            <div class="section-center">
-
-                <div class="section-title">
-                    30분 생각하기
-                </div>
-
-                <div class="section-desc">
-                    바로 결제하기 전에 잠시 멈춰<br>
-                    정말 필요한 소비인지 다시 생각해보세요.
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
         record = st.session_state.get(
             "latest_record"
         )
@@ -2144,10 +2164,255 @@ elif page == "구매체크":
 
         if record:
 
-            st.success(
-                "구매 보류가 시작되었습니다. "
-                "MY에서 기록을 확인할 수 있어요."
+            record_id = record.get(
+                "id"
             )
+
+
+            st.markdown(
+                """
+                <div class="section-center"
+                     style="margin-top:24px;">
+
+                    <div class="section-title">
+                        구매 전, 한 번 더 체크해 보세요
+                    </div>
+
+                    <div class="section-desc">
+                        분석 결과를 확인했어요.<br>
+                        지금 어떤 선택을 하시겠어요?
+                    </div>
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+            if (
+                st.session_state.get(
+                    "purchase_action"
+                )
+                == "BUY"
+            ):
+
+                actual_amount = st.number_input(
+                    "실제로 결제할 금액",
+
+                    min_value=0,
+
+                    step=1000,
+
+                    value=(
+                        int(result["price"])
+                        if result["price"] > 0
+                        else 0
+                    ),
+
+                    key="latest_buy_amount"
+                )
+
+
+                if st.button(
+                    "구매 기록 저장",
+                    type="primary",
+                    use_container_width=True,
+                    key="latest_buy_save"
+                ):
+
+                    saved_category = (
+                        st.session_state.get(
+                            "latest_category",
+                            "기타"
+                        )
+                    )
+
+                    expense_ok = add_expense(
+                        saved_category,
+                        result["product_name"],
+                        actual_amount
+                    )
+
+                    record_ok = update_record(
+                        record_id,
+                        "BUY",
+                        0
+                    )
+
+
+                    if (
+                        expense_ok
+                        and record_ok
+                    ):
+
+                        st.session_state.pop(
+                            "purchase_action",
+                            None
+                        )
+
+                        st.session_state.pop(
+                            "latest_analysis",
+                            None
+                        )
+
+                        st.session_state.pop(
+                            "latest_record",
+                            None
+                        )
+
+                        st.session_state.pop(
+                            "latest_category",
+                            None
+                        )
+
+                        st.success(
+                            "구매 기록을 저장했어요. "
+                            "소비분석에서 확인할 수 있어요."
+                        )
+
+                        st.rerun()
+
+
+                    else:
+
+                        st.error(
+                            "구매 기록 저장 중 "
+                            "문제가 발생했습니다."
+                        )
+
+
+            else:
+
+                if st.button(
+                    "구매 계속하기",
+                    type="primary",
+                    use_container_width=True,
+                    key="latest_buy"
+                ):
+
+                    st.session_state[
+                        "purchase_action"
+                    ] = "BUY"
+
+                    st.rerun()
+
+
+                col1, col2 = st.columns(2)
+
+
+                with col1:
+
+                    if st.button(
+                        "30분 보류하기",
+                        use_container_width=True,
+                        key="latest_hold"
+                    ):
+
+                        if start_hold(
+                            record_id
+                        ):
+
+                            st.session_state.pop(
+                                "purchase_action",
+                                None
+                            )
+
+                            st.session_state.pop(
+                                "latest_analysis",
+                                None
+                            )
+
+                            st.session_state.pop(
+                                "latest_record",
+                                None
+                            )
+
+                            st.session_state.pop(
+                                "latest_category",
+                                None
+                            )
+
+                            st.success(
+                                "30분 구매 보류를 시작했어요. "
+                                "MY에서 남은 시간을 확인할 수 있어요."
+                            )
+
+                            st.rerun()
+
+
+                        else:
+
+                            st.error(
+                                "구매 보류 저장 중 "
+                                "문제가 발생했습니다."
+                            )
+
+
+                with col2:
+
+                    if st.button(
+                        "구매하지 않기",
+                        use_container_width=True,
+                        key="latest_not_buy"
+                    ):
+
+                        saved = (
+                            int(result["price"])
+                            if result["price"] > 0
+                            else 0
+                        )
+
+
+                        if update_record(
+                            record_id,
+                            "NOT_BUY",
+                            saved
+                        ):
+
+                            st.session_state.pop(
+                                "purchase_action",
+                                None
+                            )
+
+                            st.session_state.pop(
+                                "latest_analysis",
+                                None
+                            )
+
+                            st.session_state.pop(
+                                "latest_record",
+                                None
+                            )
+
+                            st.session_state.pop(
+                                "latest_category",
+                                None
+                            )
+
+
+                            if saved > 0:
+
+                                st.success(
+                                    f"구매하지 않기로 했어요. "
+                                    f"{saved:,}원을 아꼈습니다."
+                                )
+
+                            else:
+
+                                st.success(
+                                    "구매하지 않기로 했어요."
+                                )
+
+
+                            st.rerun()
+
+
+                        else:
+
+                            st.error(
+                                "구매 포기 기록 저장 중 "
+                                "문제가 발생했습니다."
+                            )
 
 
 # =========================================================
@@ -2735,4 +3000,11 @@ elif page == "MY":
 
                 st.info(
                     "구매 완료"
+                )
+
+
+            elif decision == "PENDING":
+
+                st.info(
+                    "분석 완료 · 아직 구매 여부를 선택하지 않았어요."
                 )
