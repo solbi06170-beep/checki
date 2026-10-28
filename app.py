@@ -387,8 +387,11 @@ div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border
 .phero .hi{font-size:12.5px;color:var(--muted);font-weight:600}
 .phero h2{font-size:22px;font-weight:900;letter-spacing:-.8px;color:var(--navy);margin:2px 0 0;padding:0;line-height:1.3}
 .phero h2 em{font-style:normal;color:var(--blue)}
-.say{display:inline-block;margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:16px 16px 16px 4px;
-  padding:8px 11px;font-size:12px;font-weight:700;color:#35506A;line-height:1.45;box-shadow:0 6px 14px #1C5FA414;animation:pop .5s ease-out}
+.say{display:flex;align-items:flex-start;gap:7px;width:fit-content;max-width:100%;margin-top:12px;background:#fff;
+  border:1px solid var(--line);border-radius:18px 18px 18px 6px;padding:10px 13px;box-shadow:0 6px 14px #1C5FA414;animation:pop .5s ease-out;
+  text-align:left;word-break:keep-all;overflow-wrap:anywhere}
+.say .si{flex:0 0 auto;font-size:14px;line-height:1.5}
+.say .st{font-size:12.5px;font-weight:700;color:#35506A;line-height:1.5}
 .phero .m{position:absolute;right:2px;bottom:-4px;width:132px;z-index:1;text-align:center}
 .phero .m img{width:132px;max-height:146px;object-fit:contain;filter:drop-shadow(0 12px 16px #1C5FA44D)}
 .phero .m .em{font-size:70px;line-height:1.2}
@@ -695,22 +698,34 @@ def go(page):
 
 
 def add_sample_data():
-    """발표·체험용 샘플 소비 내역 (최근 3개월, 정기결제 포함) — 금융 거래 내역 연결을 가정한 데모 데이터."""
+    """발표·체험용 샘플 소비 내역 — 금융 거래 내역 연결을 가정한 데모 데이터.
+    이번 달 항목은 날짜와 상관없이 항상 이번 달 안에 들어가도록 배치한다.
+    (기본 예산 50만 원 기준: 패션/의류·구독서비스만 초과, 전자기기는 주의, 나머지는 여유)"""
     now = now_kst()
-    samples = [
-        ("식품", "배달 치킨", 23000, 1, 23), ("구독서비스", "넷플릭스", 17000, 2, 10),
-        ("패션/의류", "후드티", 49000, 3, 0), ("뷰티", "선크림", 18000, 5, 14),
-        ("전자기기", "무선 이어폰", 89000, 7, 1), ("식품", "배달 치킨", 21000, 9, 22),
-        ("구독서비스", "유튜브 프리미엄", 14900, 12, 9), ("패션/의류", "운동화", 79000, 14, 23),
-        ("생활용품", "세제", 12000, 15, 16), ("취미/여가", "보드게임", 32000, 22, 20),
-        ("구독서비스", "넷플릭스", 17000, 32, 10), ("패션/의류", "셔츠", 59000, 40, 21),
-        ("구독서비스", "유튜브 프리미엄", 14900, 42, 9), ("식품", "장보기", 56000, 45, 18),
-        ("패션/의류", "모자", 45000, 62, 13), ("식품", "배달 피자", 27000, 70, 23),
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    span = max(0, now.day - 1)
+    # (카테고리, 항목, 금액, 이번 달 경과 비율, 시각)
+    current = [
+        ("식품", "배달 치킨", 23000, 0.05, 23), ("구독서비스", "넷플릭스", 17000, 0.10, 10),
+        ("패션/의류", "후드티", 39000, 0.15, 0), ("뷰티", "선크림", 18000, 0.22, 14),
+        ("전자기기", "무선 이어폰", 42000, 0.30, 1), ("식품", "배달 치킨", 21000, 0.38, 22),
+        ("구독서비스", "유튜브 프리미엄", 14900, 0.45, 9), ("패션/의류", "운동화", 69000, 0.55, 23),
+        ("생활용품", "세제", 12000, 0.62, 16), ("취미/여가", "보드게임", 18000, 0.80, 20),
     ]
-    for cat, name, amt, days, hour in samples:
+    rows = []
+    for cat, name, amt, frac, hour in current:
+        days = int(round(frac * span))
         when = (now - timedelta(days=days)).replace(hour=hour, minute=15, second=0, microsecond=0)
         if when > now:
-            when = now - timedelta(minutes=days + 1)
+            when = now - timedelta(minutes=10 + days)
+        rows.append((cat, name, amt, when))
+        if cat == "구독서비스":  # 지난달 같은 날 결제 → 정기결제로 감지
+            rows.append((cat, name, amt, when - timedelta(days=30)))
+    # 지난달 이전 소비 (월별 추이용)
+    for cat, name, amt, before, hour in [("패션/의류", "셔츠", 59000, 10, 21), ("식품", "장보기", 56000, 15, 18),
+                                         ("패션/의류", "모자", 45000, 32, 13), ("식품", "배달 피자", 27000, 40, 23)]:
+        rows.append((cat, name, amt, (month_start - timedelta(days=before)).replace(hour=hour, minute=15)))
+    for cat, name, amt, when in rows:
         add_expense(cat, name, amt, when)
 
 
@@ -1145,9 +1160,9 @@ def html_block(markup):
 
 
 BRAND = '<div class="brand-row"><b>CHECKI</b><span>CHECK BEFORE YOU BUY</span></div>'
-SPARKS = ('<span class="spark" style="right:44%;top:18px">✦</span>'
-          '<span class="spark" style="right:10%;top:22px;animation-delay:.8s">✦</span>'
-          '<span class="spark" style="right:36%;bottom:26px;animation-delay:1.5s;font-size:10px">✦</span>')
+SPARKS = ('<span class="spark" style="right:30%;top:14px">✦</span>'
+          '<span class="spark" style="right:6%;top:12px;animation-delay:.8s">✦</span>'
+          '<span class="spark" style="right:31%;bottom:16px;animation-delay:1.5s;font-size:10px">✦</span>')
 MASCOT_FALLBACK = {"scan": "🤖", "search": "🔍", "wait": "⏳", "chart": "📊"}
 
 
@@ -1163,7 +1178,7 @@ def app_head(small, title):
 def page_hero(small, title, which, say):
     html_block(
         f'<div class="phero">{SPARKS}<div class="tx">{BRAND}<div class="hi">{safe(small)}</div><h2>{title}</h2>'
-        f'<div class="say">💬 {safe(say)}</div></div><div class="m">{mascot_or_emoji(which)}</div></div>'
+        f'<div class="say"><span class="si">💬</span><span class="st">{safe(say)}</span></div></div><div class="m">{mascot_or_emoji(which)}</div></div>'
     )
 
 
