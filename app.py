@@ -14,12 +14,12 @@ import base64
 import html
 
 # =============================================================
-# CHECKI v2
-# - 기존 Supabase 테이블 2개(checki_expenses, checki_records) 그대로 사용
-# - 새 테이블/컬럼 추가 없음
+# CHECKI v3
+# - 기존 Supabase 테이블 2개(checki_expenses, checki_records) 그대로 사용 (새 테이블/컬럼 없음)
 # - AI 분석 = ① 구매 화면 다크패턴 분석 + ② 개인 소비데이터 기반 맞춤 판단
+# - DB 연결 실패 시 자동으로 '체험 모드'(세션 저장)로 동작
 # =============================================================
-st.set_page_config(page_title="CHECKI | 체키", page_icon="🔎", layout="wide",
+st.set_page_config(page_title="CHECKI | 체키", page_icon="🔎", layout="centered",
                    initial_sidebar_state="collapsed")
 
 KST = timezone(timedelta(hours=9))
@@ -32,7 +32,8 @@ MASCOTS = {
     "wait": "checki_mascot_wait.png",
     "chart": "checki_mascot_chart.png",
 }
-NAV = ["홈", "구매체크", "소비분석", "MY"]
+NAV = ["홈", "체크", "리포트", "기록"]
+NAV_ICON = {"홈": "🏠", "체크": "🔎", "리포트": "📊", "기록": "🗂️"}
 DECISION_LABEL = {"PENDING": "선택 대기", "HOLD": "30분 생각하기",
                   "BUY": "구매 완료", "NOT_BUY": "구매하지 않음"}
 DECISION_BADGE = {"PENDING": "선택 대기", "HOLD": "보류 중",
@@ -47,6 +48,7 @@ RECOMMEND = {
     "HOLD": ("⏱️", "30분 보류를 권장해요"),
     "RECONSIDER": ("🛑", "구매를 다시 생각해보세요"),
 }
+ss = st.session_state
 
 
 # ---------------- 공통 유틸 ----------------
@@ -99,172 +101,204 @@ def norm_name(value):
 
 def get_setting(name, default):
     """예산/저금 목표: 새 테이블 없이 URL 파라미터에 저장해 재접속 시에도 유지."""
-    if name not in st.session_state:
+    if name not in ss:
         value = number(st.query_params.get(name))
-        st.session_state[name] = value if value > 0 else default
-    return st.session_state[name]
+        ss[name] = value if value > 0 else default
+    return ss[name]
 
 
 def set_setting(name, value):
-    st.session_state[name] = number(value)
+    ss[name] = number(value)
     st.query_params[name] = str(number(value))
 
 
-def mascot(which, width=145):
+def mascot_src(which):
     path = MASCOTS.get(which)
     if not path or not os.path.isfile(path):
-        return
-    with open(path, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode()
-    st.markdown(
-        f'<div class="mascot"><img src="data:image/png;base64,{encoded}" '
-        f'style="width:min({width}px,40vw);max-height:160px;object-fit:contain"></div>',
-        unsafe_allow_html=True,
-    )
+        return ""
+    key = f"_mascot_{which}"
+    if key not in ss:
+        with open(path, "rb") as f:
+            ss[key] = "data:image/png;base64," + base64.b64encode(f.read()).decode()
+    return ss[key]
 
 
 def preview_image(image):
     try:
         im = image.copy()
+        im.thumbnail((900, 900))
         buf = BytesIO()
         if im.mode == "RGBA":
             im.save(buf, format="PNG")
             mime = "image/png"
         else:
-            im.convert("RGB").save(buf, format="JPEG", quality=88)
+            im.convert("RGB").save(buf, format="JPEG", quality=85)
             mime = "image/jpeg"
         encoded = base64.b64encode(buf.getvalue()).decode()
         st.markdown(f'<div class="preview"><img src="data:{mime};base64,{encoded}"></div>',
                     unsafe_allow_html=True)
     except Exception:
-        st.image(image, width=300)
+        st.image(image, width=280)
 
 
 # ---------------- 스타일 ----------------
+# 주의: 아이콘(Material Symbols) 요소에는 폰트를 덮어쓰지 않는다.
+#       기존 [class*="st-"] 전체 덮어쓰기가 '_arrow_right' 같은 글자 깨짐의 원인이었음.
 st.markdown("""
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
-:root{--blue:#1689F8;--navy:#172C3F;--muted:#74889C;--line:#DFEAF3}
-html,body,[class*="st-"],button,input,textarea{font-family:"Pretendard Variable",sans-serif!important}
-.stApp{background:linear-gradient(165deg,#EEF8FF 0%,#F8FCFF 43%,#FFFFFF 100%);color:var(--navy)}
-header[data-testid="stHeader"],#MainMenu,footer{display:none!important}
-.block-container{max-width:860px!important;padding-top:.5rem!important;padding-bottom:5rem!important}
-.brand{text-align:center;padding:14px 0 2px}
-.brand strong{font-size:31px;letter-spacing:-2px;font-weight:900;color:var(--blue)}
-.brand b{font-size:27px;letter-spacing:-2px;font-weight:900;color:var(--navy)}
-.brand small{display:block;font-size:9px;letter-spacing:3px;font-weight:800;color:#8CA0B1;margin-top:4px}
+:root{--blue:#1689F8;--blue2:#4DAEFF;--navy:#132A3E;--muted:#71859A;--line:#E3ECF4;--bg:#F5F9FD;--card:#FFFFFF}
+.stApp *:not([data-testid="stIconMaterial"]):not([class*="material"]):not(code):not(pre):not(kbd){
+  font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+[data-testid="stIconMaterial"],[class*="material-symbols"],[class*="material-icons"]{
+  font-family:"Material Symbols Rounded","Material Symbols Outlined","Material Icons"!important}
+.stApp{background:radial-gradient(900px 500px at 100% -10%,#DDEFFF 0%,transparent 60%),
+  radial-gradient(700px 400px at -10% 10%,#E9F7F3 0%,transparent 55%),var(--bg);color:var(--navy)}
+header[data-testid="stHeader"],#MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"]{display:none!important}
+.block-container{max-width:720px!important;padding:1rem 1.1rem 6rem!important}
 
-/* 상단 메뉴: 세그먼트 탭 스타일 */
-div[role="radiogroup"]{justify-content:center;gap:4px;flex-wrap:wrap}
-div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border-radius:24px;
-  padding:6px 14px!important;margin:0!important;font-weight:750;transition:all .15s}
-div[role="radiogroup"] label > div:first-child{display:none}
-div[role="radiogroup"] label:has(input:checked){background:var(--blue);border-color:var(--blue);
-  box-shadow:0 4px 12px #1689F833}
-div[role="radiogroup"] label:has(input:checked) p{color:#fff!important}
+/* 헤더 */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.logo{display:flex;align-items:baseline;gap:7px}
+.logo b{font-size:25px;font-weight:900;letter-spacing:-1.5px;color:var(--blue)}
+.logo span{font-size:17px;font-weight:800;color:var(--navy);letter-spacing:-.5px}
+.logo small{font-size:10px;font-weight:800;letter-spacing:2px;color:#9AB0C3;margin-left:2px}
+.mode{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px}
+.mode.on{background:#E3F7EE;color:#14855A}.mode.off{background:#FFF1DE;color:#B26A00}
 
-.hero{text-align:center;padding:24px 5px 8px}
-.hero h1{font-size:29px;line-height:1.35;font-weight:900;letter-spacing:-1.6px;color:var(--navy);margin:0}
-.hero h1 em{font-style:normal;color:var(--blue)}
-.hero p{color:var(--muted);font-size:14px;line-height:1.7;margin-top:8px}
-.mascot{text-align:center;margin:4px auto 12px}
-.kicker{color:var(--blue);font-size:11.5px;font-weight:850;letter-spacing:1px;margin-bottom:6px}
-.section{font-size:17px;font-weight:850;color:#18354A;margin:26px 0 8px;letter-spacing:-.5px}
+/* 메뉴: segmented control */
+[data-testid="stButtonGroup"]{width:100%}
+[data-testid="stButtonGroup"] > div{width:100%;display:flex;background:#fff;border:1px solid var(--line);
+  border-radius:16px;padding:4px;gap:4px;box-shadow:0 6px 20px #1C6AA40D}
+[data-testid="stButtonGroup"] button{flex:1 1 0;border:0!important;border-radius:12px!important;min-height:42px;
+  font-weight:800!important;color:var(--muted)!important;background:transparent!important}
+[data-testid="stButtonGroup"] button[kind*="Active"],[data-testid="stButtonGroup"] button[aria-checked="true"],
+[data-testid="stButtonGroup"] button[aria-pressed="true"]{background:var(--navy)!important;color:#fff!important}
+[data-testid="stButtonGroup"] button p{font-size:14px!important;font-weight:800!important;color:inherit!important}
+/* 라디오(구버전 대체 메뉴) */
+div[role="radiogroup"]{gap:6px;flex-wrap:wrap}
+div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 12px!important;margin:0!important}
+
+/* 히어로 */
+.hero-card{position:relative;overflow:hidden;border-radius:28px;padding:26px 22px 24px;color:#fff;margin:6px 0 14px;
+  background:radial-gradient(120% 140% at 100% 0%,#5CB8FF 0%,#1689F8 38%,#0E3A66 100%);box-shadow:0 18px 40px #1689F833}
+.hero-card .pill{display:inline-block;background:#FFFFFF24;border:1px solid #FFFFFF3D;padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:800;letter-spacing:.3px}
+.hero-card h1{color:#fff;font-size:27px;line-height:1.32;font-weight:900;letter-spacing:-1.2px;margin:12px 0 8px;padding:0}
+.hero-card p{color:#DCEBFF;font-size:14px;line-height:1.6;margin:0;max-width:72%}
+.hero-card img{position:absolute;right:10px;bottom:6px;width:118px;max-height:130px;object-fit:contain;filter:drop-shadow(0 10px 18px #00000033)}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 8px}
+.page-head h1{font-size:24px;font-weight:900;letter-spacing:-1px;color:var(--navy);margin:0;padding:0}
+.page-head h1 em{font-style:normal;color:var(--blue)}
+.page-head p{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+.page-head img{width:72px;max-height:80px;object-fit:contain}
+
+/* 공통 블록 */
+.kicker{color:var(--blue);font-size:11px;font-weight:850;letter-spacing:1px;margin-bottom:6px}
+.section{font-size:16.5px;font-weight:850;color:var(--navy);margin:26px 0 8px;letter-spacing:-.4px}
 .section small{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-top:2px;letter-spacing:0}
-
-.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 20px;margin:10px 0;box-shadow:0 9px 28px #1C6AA40C}
-.card h3{margin:0 0 6px;font-size:16.5px;font-weight:850;color:#18354A}
-.card p{margin:0;color:#6C8396;line-height:1.6;font-size:13.5px}
-
+.step-title{display:flex;align-items:center;gap:8px;font-weight:850;font-size:15px;color:var(--navy);margin:18px 0 6px}
+.step-title i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;
+  display:inline-flex;align-items:center;justify-content:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 17px;margin:8px 0;box-shadow:0 6px 20px #1C6AA40A}
+.card h3{margin:0 0 4px;font-size:15px;font-weight:800;color:var(--navy);padding:0}
+.card p{margin:0;color:var(--muted);line-height:1.55;font-size:13px}
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
-.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 8px;text-align:center}
-.stat b{display:block;font-size:18px;font-weight:900;color:var(--navy);letter-spacing:-.5px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 8px;text-align:center;box-shadow:0 6px 18px #1C6AA40A}
+.stat b{display:block;font-size:17px;font-weight:900;color:var(--navy);letter-spacing:-.5px;white-space:nowrap}
 .stat span{font-size:11.5px;color:var(--muted);font-weight:700}
-.stat.blue b{color:var(--blue)} .stat.green b{color:#0E8F6E} .stat.red b{color:#D24646}
+.stat.blue b{color:var(--blue)}.stat.green b{color:#0E8F6E}.stat.red b{color:#D24646}
+.data-chip{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.data-chip span{background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;color:#4A6378}
+.alert{display:flex;gap:10px;align-items:center;background:#FFF8E6;border:1px solid #F3E2B0;border-radius:16px;padding:12px 14px;font-size:13.5px;font-weight:700;color:#7A5300;margin:10px 0}
+.alert.off{background:#FFF3E6;border-color:#F6D7AE;color:#8A4F00;font-weight:600}
 
-.flow{display:flex;flex-direction:column;gap:8px;margin:8px 0}
-.flow-step{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 14px}
-.flow-step .n{flex:0 0 28px;height:28px;border-radius:50%;background:#E5F2FF;color:var(--blue);font-weight:900;
+/* 흐름 */
+.flow{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0}
+.flow-step{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.flow-step .n{flex:0 0 28px;height:28px;border-radius:9px;background:linear-gradient(135deg,var(--blue2),var(--blue));color:#fff;font-weight:900;
   display:flex;align-items:center;justify-content:center;font-size:13px}
-.flow-step b{font-size:14.5px;color:var(--navy)}
+.flow-step b{font-size:14px;color:var(--navy)}
 .flow-step p{margin:2px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
 
-.result{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;margin:12px 0;box-shadow:0 9px 28px #1C6AA410}
+/* 분석 결과 */
+.result{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin:12px 0;box-shadow:0 10px 30px #1C6AA410}
 .result-head{display:flex;gap:16px;align-items:center}
-.result-head h3{margin:8px 0 0;font-size:16px;line-height:1.5;font-weight:800;color:var(--navy)}
-.gauge{width:86px;height:86px;border-radius:50%;flex:0 0 86px;display:flex;align-items:center;justify-content:center;
+.result-head h3{margin:8px 0 0;font-size:15.5px;line-height:1.5;font-weight:800;color:var(--navy);padding:0}
+.gauge{width:84px;height:84px;border-radius:50%;flex:0 0 84px;display:flex;align-items:center;justify-content:center;
   background:conic-gradient(var(--c) calc(var(--p) * 1%),#E8F0F6 0)}
-.gauge span{width:66px;height:66px;border-radius:50%;background:#fff;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;font-weight:900;font-size:23px;color:var(--navy);line-height:1.1}
+.gauge span{width:64px;height:64px;border-radius:50%;background:#fff;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-weight:900;font-size:22px;color:var(--navy);line-height:1.1}
 .gauge small{font-size:10px;color:var(--muted);font-weight:700}
-.level{display:inline-block;padding:4px 11px;border-radius:20px;font-size:12.5px;font-weight:850}
+.level{display:inline-block;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:850}
 .level.low{background:#E3F7EE;color:#14855A}.level.medium{background:#FFF4D6;color:#A86E00}.level.high{background:#FFE6E6;color:#C23B3B}
-.kv{margin:14px 0 0}
+.kv{margin:12px 0 0}
 .kv dt{font-size:12px;font-weight:850;color:var(--muted);margin-top:12px}
-.kv dd{margin:4px 0 0;font-size:14.5px;line-height:1.6;color:var(--navy)}
+.kv dd{margin:5px 0 0;font-size:14px;line-height:1.6;color:var(--navy)}
 .tags{display:flex;flex-wrap:wrap;gap:6px}
 .tag{background:#F1F6FA;border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px;font-weight:700;color:#4A6378}
 .tag.warn{background:#FFF1F1;border-color:#F4D2D2;color:#B03C3C}
-
 .rec{display:flex;align-items:center;gap:12px;border-radius:16px;padding:14px 15px}
 .rec.BUY{background:#EAF8F1}.rec.HOLD{background:#EEF6FF}.rec.RECONSIDER{background:#FFF0F0}
-.rec .icon{font-size:28px}
-.rec b{font-size:16.5px;color:var(--navy);display:block}
+.rec .icon{font-size:28px;line-height:1}
+.rec b{font-size:16px;color:var(--navy);display:block}
 .rec span{font-size:13.5px;color:#4E6578;line-height:1.55}
 .chips{display:flex;flex-direction:column;gap:7px;margin-top:12px}
 .chip{border-radius:13px;padding:10px 12px;font-size:13.5px;line-height:1.5;font-weight:600}
 .chip.high{background:#FFF0F0;color:#A23636}.chip.mid{background:#FFF8E6;color:#8A5B00}
 .chip.info{background:#EEF6FF;color:#245A8A}.chip.good{background:#EAF8F1;color:#1E7A52}
+.ctx{background:#F6F9FC;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:12.5px;line-height:1.7;color:#3D566C;white-space:pre-wrap;word-break:keep-all}
 
-.bars{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin:8px 0}
-.bar-row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px}
-.bar-row .lb{flex:0 0 82px;color:#4A6378;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 차트 */
+.bars{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 16px;margin:8px 0}
+.bar-row{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px}
+.bar-row .lb{flex:0 0 80px;color:#4A6378;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar-row .tr{flex:1;height:10px;background:#EDF3F8;border-radius:10px;overflow:hidden}
-.bar-row .fl{height:100%;background:linear-gradient(90deg,#4DAEFF,#1689F8);border-radius:10px}
-.bar-row .fl.late{background:linear-gradient(90deg,#9A8CFF,#6A5CF0)}
-.bar-row .vl{flex:0 0 auto;min-width:62px;text-align:right;font-weight:800;color:var(--navy)}
-
-.budget{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;margin:8px 0}
+.bar-row .fl{height:100%;background:linear-gradient(90deg,var(--blue2),var(--blue));border-radius:10px}
+.bar-row .fl.late{background:linear-gradient(90deg,#A497FF,#6A5CF0)}
+.bar-row .vl{flex:0 0 auto;min-width:60px;text-align:right;font-weight:800;color:var(--navy)}
+.budget{background:#fff;border:1px solid var(--line);border-radius:20px;padding:17px;margin:8px 0}
 .budget .top{display:flex;justify-content:space-between;align-items:flex-end}
 .budget .top b{font-size:22px;font-weight:900;color:var(--navy)}
 .budget .top span{font-size:12.5px;color:var(--muted);font-weight:700}
-.progress-bg{height:12px;border-radius:20px;background:#E3EDF3;overflow:hidden;margin:12px 0 6px}
-.progress-fill{height:100%;background:linear-gradient(90deg,#25BFA4,#1689F8);border-radius:20px}
+.progress-bg{height:11px;border-radius:20px;background:#E3EDF3;overflow:hidden;margin:12px 0 6px}
+.progress-fill{height:100%;background:linear-gradient(90deg,#25BFA4,var(--blue));border-radius:20px}
 .progress-fill.over{background:linear-gradient(90deg,#FF9A7A,#E25555)}
+.meta{font-size:12.5px;color:var(--muted)}
 
-.rcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px 16px;margin:10px 0 6px}
+/* 기록 */
+.rcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin:12px 0 6px;box-shadow:0 6px 18px #1C6AA40A}
 .rtop{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.rtop b{font-size:15.5px;color:var(--navy);font-weight:850}
-.rmeta{font-size:12.5px;color:var(--muted);margin-top:4px}
-.rsum{font-size:13px;color:#4E6578;margin-top:8px;line-height:1.5}
+.rtop b{font-size:15px;color:var(--navy);font-weight:850}
+.rsum{font-size:13px;color:#4E6578;margin-top:7px;line-height:1.5}
 .badge{flex:0 0 auto;display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:850}
 .badge.HOLD{background:#E5F2FF;color:#1468C2}.badge.BUY{background:#EEF1F4;color:#55687A}
 .badge.NOT_BUY{background:#E3F7EE;color:#14855A}.badge.PENDING{background:#FFF4D6;color:#A86E00}
-
-.pig{border-radius:24px;padding:24px;background:linear-gradient(130deg,#DFF9F1,#E8F6FF);border:1px solid #CBEDE9;text-align:center;margin:10px 0}
-.pig .amount{font-size:38px;font-weight:900;color:#087E75;letter-spacing:-2px}
-.pig .sub{font-size:13px;color:#527E80}
-.pig .emoji{font-size:42px}
-.hold{background:#EFF7FF;border:1px solid #D4E9FC;border-radius:17px;padding:15px;margin:6px 0;text-align:center}
-.hold .clock{font-size:32px;font-weight:900;color:var(--blue);font-variant-numeric:tabular-nums}
+.pig{border-radius:24px;padding:22px;background:linear-gradient(135deg,#DDF8EF,#E6F4FF);border:1px solid #CBEDE9;text-align:center;margin:8px 0}
+.pig .amount{font-size:34px;font-weight:900;color:#087E75;letter-spacing:-1.5px}
+.pig .sub{font-size:12.5px;color:#527E80}
+.pig .emoji{font-size:38px;line-height:1.2}
+.hold{background:linear-gradient(135deg,#EFF7FF,#F6FBFF);border:1px solid #D4E9FC;border-radius:16px;padding:13px;margin:6px 0;text-align:center}
+.hold .clock{font-size:30px;font-weight:900;color:var(--blue);font-variant-numeric:tabular-nums;letter-spacing:1px}
 .hold small{color:var(--muted)}
-.alert{background:#FFF8E6;border:1px solid #F3E2B0;border-radius:16px;padding:13px 15px;font-size:14px;font-weight:700;color:#7A5300;margin:10px 0}
+.empty{text-align:center;padding:26px 10px;color:var(--muted);font-size:13.5px;background:#fff;border:1px dashed #D3E1EC;border-radius:18px;margin:8px 0}
 
-.preview{text-align:center;margin:12px 0}
-.preview img{max-width:min(320px,88vw);max-height:400px;border-radius:16px;border:1px solid var(--line);box-shadow:0 8px 22px #1C6AA416}
-.stButton>button{border-radius:13px!important;min-height:46px;font-weight:750!important}
-.stButton>button[kind="primary"]{background:linear-gradient(120deg,#1689F8,#4DAEFF)!important;border:0!important}
+/* 위젯 */
+.preview{text-align:center;margin:10px 0}
+.preview img{max-width:min(300px,86vw);max-height:380px;border-radius:16px;border:1px solid var(--line);box-shadow:0 8px 22px #1C6AA416}
+.stButton>button{border-radius:14px!important;min-height:48px;font-weight:800!important}
+.stButton>button[kind="primary"]{background:linear-gradient(120deg,#1689F8,#4DAEFF)!important;border:0!important;box-shadow:0 8px 20px #1689F840}
 .stTextInput input,.stNumberInput input{border-radius:12px!important}
-[data-testid="stFileUploaderDropzone"]{border-radius:15px;background:#F8FBFE}
-[data-testid="stExpander"]{border-radius:16px!important;background:#fff}
-@media(max-width:768px){
-.block-container{padding:0 .85rem 4rem!important}
-.brand strong{font-size:27px}.brand b{font-size:24px}
-.hero{padding-top:18px}.hero h1{font-size:24px}
-.stat b{font-size:15.5px}.stat span{font-size:10.5px}
-.gauge{width:76px;height:76px;flex-basis:76px}.gauge span{width:58px;height:58px;font-size:20px}
-.pig .amount{font-size:31px}
-.preview img{max-width:240px;max-height:320px}
+[data-baseweb="select"]>div{border-radius:12px!important}
+[data-testid="stFileUploaderDropzone"]{border-radius:16px;background:#F8FBFE;border:1.5px dashed #C9DCEB}
+[data-testid="stTabs"] button p{font-weight:800}
+@media(max-width:640px){
+.block-container{padding:.6rem .85rem 6rem!important}
+.hero-card{padding:22px 18px}.hero-card h1{font-size:23px}.hero-card p{font-size:13px;max-width:66%}
+.hero-card img{width:96px}
+.page-head h1{font-size:21px}.page-head img{width:58px}
+.stat b{font-size:14.5px}.stat span{font-size:10.5px}
+.gauge{width:74px;height:74px;flex-basis:74px}.gauge span{width:56px;height:56px;font-size:19px}
+[data-testid="stButtonGroup"] button p{font-size:13px!important}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -287,58 +321,96 @@ def get_clients(gemini_key, supabase_url, supabase_key):
 try:
     gemini, supabase = get_clients(GEMINI_API_KEY, SUPABASE_URL, SUPABASE_KEY)
 except Exception as exc:
-    st.error(f"서비스 연결 실패: {exc}")
-    st.stop()
+    gemini, supabase = None, None
+    ss["db_offline"] = True
+    ss["db_error"] = str(exc)
+    try:
+        gemini = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception:
+        pass
 
-if "user_id" not in st.session_state:
+if "user_id" not in ss:
     try:
         uid = st.query_params.get("uid")
         if isinstance(uid, list):
             uid = uid[0]
         if uid:
             uuid.UUID(str(uid))
-            st.session_state.user_id = str(uid)
+            ss.user_id = str(uid)
         else:
-            st.session_state.user_id = str(uuid.uuid4())
-            st.query_params["uid"] = st.session_state.user_id
+            ss.user_id = str(uuid.uuid4())
+            st.query_params["uid"] = ss.user_id
     except Exception:
-        st.session_state.user_id = str(uuid.uuid4())
-user_id = st.session_state.user_id
+        ss.user_id = str(uuid.uuid4())
+user_id = ss.user_id
 
 
-# ---------------- DB (기존 테이블 2개만 사용) ----------------
+# ---------------- 데이터 (기존 테이블 2개 / 연결 실패 시 체험 모드) ----------------
+def online():
+    return supabase is not None and not ss.get("db_offline")
+
+
+def is_connection_error(exc):
+    text = f"{type(exc).__name__} {exc}".lower()
+    return isinstance(exc, OSError) or any(
+        k in text for k in ("connect", "errno", "timed out", "timeout", "name or service", "resolve"))
+
+
+def go_offline(exc):
+    ss["db_offline"] = True
+    ss["db_error"] = str(exc)
+
+
+def local(name):
+    if name not in ss:
+        ss[name] = []
+    return ss[name]
+
+
+def by_created_desc(rows):
+    return sorted(rows, key=lambda r: str(r.get("created_at") or ""), reverse=True)
+
+
 def get_expenses():
-    try:
-        response = (supabase.table("checki_expenses").select("*")
-                    .eq("user_id", user_id).order("created_at", desc=True).execute())
-        return response.data or []
-    except Exception as exc:
-        st.warning(f"소비 기록을 불러오지 못했어요: {exc}")
-        return []
+    if online():
+        try:
+            response = (supabase.table("checki_expenses").select("*")
+                        .eq("user_id", user_id).order("created_at", desc=True).execute())
+            return response.data or []
+        except Exception as exc:
+            go_offline(exc)
+    return by_created_desc(local("local_expenses"))
 
 
 def get_records():
-    try:
-        response = (supabase.table("checki_records").select("*")
-                    .eq("user_id", user_id).order("created_at", desc=True).execute())
-        return response.data or []
-    except Exception as exc:
-        st.warning(f"체키 기록을 불러오지 못했어요: {exc}")
-        return []
+    if online():
+        try:
+            response = (supabase.table("checki_records").select("*")
+                        .eq("user_id", user_id).order("created_at", desc=True).execute())
+            return response.data or []
+        except Exception as exc:
+            go_offline(exc)
+    return by_created_desc(local("local_records"))
 
 
-def add_expense(category, item_name, amount):
-    try:
-        data = {
-            "user_id": user_id, "category": category, "item_name": item_name,
-            "amount": number(amount), "purchased_at": now_kst().date().isoformat(),
-            "created_at": iso_now(),
-        }
-        supabase.table("checki_expenses").insert(data).execute()
-        return True
-    except Exception as exc:
-        st.error(f"소비 기록 저장 실패: {exc}")
-        return False
+def add_expense(category, item_name, amount, when=None):
+    when = when or now_kst()
+    data = {
+        "user_id": user_id, "category": category, "item_name": item_name,
+        "amount": number(amount), "purchased_at": when.date().isoformat(),
+        "created_at": when.isoformat(),
+    }
+    if online():
+        try:
+            supabase.table("checki_expenses").insert(data).execute()
+            return True
+        except Exception as exc:
+            if not is_connection_error(exc):
+                st.error(f"소비 기록 저장 실패: {exc}")
+                return False
+            go_offline(exc)
+    local("local_expenses").append(dict(data, id=str(uuid.uuid4())))
+    return True
 
 
 def insert_record(result, category, decision="PENDING", saved_amount=0):
@@ -360,13 +432,19 @@ def insert_record(result, category, decision="PENDING", saved_amount=0):
         "hold_until": (now + timedelta(minutes=30)).isoformat() if decision == "HOLD" else None,
         "created_at": now.isoformat(),
     }
-    try:
-        response = supabase.table("checki_records").insert(data).execute()
-        return response.data[0] if response.data else None
-    except Exception as exc:
-        if decision != "PENDING":
-            st.error(f"체키 기록 저장 실패: {exc}")
-        return None
+    if online():
+        try:
+            response = supabase.table("checki_records").insert(data).execute()
+            return response.data[0] if response.data else None
+        except Exception as exc:
+            if not is_connection_error(exc):
+                if decision != "PENDING":
+                    st.error(f"체키 기록 저장 실패: {exc}")
+                return None
+            go_offline(exc)
+    row = dict(data, id=str(uuid.uuid4()))
+    local("local_records").append(row)
+    return row
 
 
 def update_record(record_id, decision, saved_amount=0):
@@ -383,20 +461,27 @@ def update_record(record_id, decision, saved_amount=0):
         data["hold_until"] = (now + timedelta(minutes=30)).isoformat()
     else:
         data["decided_at"] = now.isoformat()
-    try:
-        supabase.table("checki_records").update(data).eq("id", record_id).eq("user_id", user_id).execute()
-        return True
-    except Exception as exc:
-        st.error(f"체키 기록 변경 실패: {exc}")
-        return False
+    for row in local("local_records"):
+        if row.get("id") == record_id:
+            row.update(data)
+            return True
+    if online():
+        try:
+            supabase.table("checki_records").update(data).eq("id", record_id).eq("user_id", user_id).execute()
+            return True
+        except Exception as exc:
+            if is_connection_error(exc):
+                go_offline(exc)
+            st.error(f"체키 기록 변경 실패: {exc}")
+    return False
 
 
 def finalize_latest(decision, saved_amount=0):
-    result = st.session_state.get("latest_analysis")
+    result = ss.get("latest_analysis")
     if not result:
         return False
-    category = st.session_state.get("latest_category", "기타")
-    existing = st.session_state.get("latest_record")
+    category = ss.get("latest_category", "기타")
+    existing = ss.get("latest_record")
     if existing and existing.get("id"):
         return update_record(existing["id"], decision, saved_amount)
     return insert_record(result, category, decision, saved_amount) is not None
@@ -404,13 +489,30 @@ def finalize_latest(decision, saved_amount=0):
 
 def clear_latest():
     for key in ("latest_analysis", "latest_record", "latest_category",
-                "purchase_action", "latest_buy_amount"):
-        st.session_state.pop(key, None)
+                "purchase_action", "latest_buy_amount", "show_ctx"):
+        ss.pop(key, None)
 
 
 def go(page):
     """버튼 처리 후 페이지 이동 (위젯 생성 후 nav 직접 변경 오류 방지)."""
-    st.session_state["pending_nav"] = page
+    ss["pending_nav"] = page
+
+
+def add_sample_data():
+    """발표·체험용 샘플 소비 (최근 한 달)."""
+    now = now_kst()
+    samples = [
+        ("식품", "배달 치킨", 23000, 1, 23), ("구독서비스", "넷플릭스", 17000, 2, 10),
+        ("패션/의류", "후드티", 49000, 3, 0), ("뷰티", "선크림", 18000, 5, 14),
+        ("전자기기", "무선 이어폰", 89000, 7, 1), ("식품", "배달 치킨", 21000, 9, 22),
+        ("구독서비스", "유튜브 프리미엄", 14900, 12, 9), ("생활용품", "세제", 12000, 15, 16),
+        ("패션/의류", "운동화", 79000, 18, 23), ("취미/여가", "보드게임", 32000, 22, 20),
+    ]
+    for cat, name, amt, days, hour in samples:
+        when = (now - timedelta(days=days)).replace(hour=hour, minute=15, second=0, microsecond=0)
+        if when > now:
+            when = now - timedelta(minutes=days)
+        add_expense(cat, name, amt, when)
 
 
 # ---------------- 개인 소비 패턴 분석 ----------------
@@ -567,8 +669,8 @@ def read_url(url):
 
 
 def parse_field(text, field, default=""):
-    match = re.search(rf"(?m)^\s*\**{re.escape(field)}\**\s*:\s*(.*)$", text, re.I)
-    return match.group(1).strip() if match else default
+    match = re.search(rf"(?m)^\s*[-*]*\s*\**{re.escape(field)}\**\s*:\s*\**\s*(.*)$", text, re.I)
+    return match.group(1).strip().strip("*").strip() if match else default
 
 
 def parse_price(value):
@@ -577,6 +679,8 @@ def parse_price(value):
 
 
 def call_gemini(contents):
+    if gemini is None:
+        raise RuntimeError("AI 서비스에 연결할 수 없어요. GEMINI_API_KEY를 확인해주세요.")
     response = gemini.models.generate_content(
         model=MODEL, contents=contents,
         config={"thinking_config": {"thinking_level": "minimal"}},
@@ -612,7 +716,7 @@ RECOMMEND 기준: BUY=뚜렷한 문제 없음, HOLD=충동구매 신호나 유�
 
 판매 가격을 확실히 확인할 수 없으면 PRICE: 0 (사용자가 입력한 가격이 있으면 그 값).
 위험도는 LOW/MEDIUM/HIGH, 점수는 0~100 (구매 화면의 유도 요소 기준).
-아래 형식을 정확히 지키고, 한 줄당 한 항목으로 답하라.
+아래 형식을 정확히 지키고, 한 줄당 한 항목으로 답하라. 마크다운 기호는 쓰지 마라.
 PRODUCT_NAME: 상품명
 PRICE: 숫자만
 RISK_LEVEL: LOW 또는 MEDIUM 또는 HIGH
@@ -631,8 +735,7 @@ PERSONAL: 사용자 소비 데이터를 근거로 한 맞춤 조언 한두 문�
     raw = call_gemini(contents)
 
     level = parse_field(raw, "RISK_LEVEL", "MEDIUM").upper()
-    if level not in ("LOW", "MEDIUM", "HIGH"):
-        level = "MEDIUM"
+    level = next((k for k in ("LOW", "MEDIUM", "HIGH") if k in level), "MEDIUM")
     rec = parse_field(raw, "RECOMMEND", "HOLD").upper()
     rec = next((k for k in RECOMMEND if k in rec), "HOLD")
     price = parse_price(parse_field(raw, "PRICE", "0")) or number(user_price)
@@ -671,25 +774,37 @@ def ai_report(profile):
 
 
 # ---------------- UI 컴포넌트 ----------------
-def hero(title, description):
-    st.markdown(f'<div class="hero"><h1>{title}</h1><p>{description}</p></div>',
-                unsafe_allow_html=True)
+def html_block(markup):
+    st.markdown(markup, unsafe_allow_html=True)
+
+
+def page_head(title, desc, which=None):
+    src = mascot_src(which) if which else ""
+    img = f'<img src="{src}" alt="">' if src else ""
+    html_block(f'<div class="page-head"><div><h1>{title}</h1><p>{safe(desc)}</p></div>{img}</div>')
 
 
 def section(title, sub=""):
     sub_html = f"<small>{safe(sub)}</small>" if sub else ""
-    st.markdown(f'<div class="section">{safe(title)}{sub_html}</div>', unsafe_allow_html=True)
+    html_block(f'<div class="section">{safe(title)}{sub_html}</div>')
+
+
+def step_title(n, title):
+    html_block(f'<div class="step-title"><i>{n}</i>{safe(title)}</div>')
 
 
 def card(title, description):
-    st.markdown(f'<div class="card"><h3>{safe(title)}</h3><p>{safe(description)}</p></div>',
-                unsafe_allow_html=True)
+    html_block(f'<div class="card"><h3>{safe(title)}</h3><p>{safe(description)}</p></div>')
+
+
+def empty(text):
+    html_block(f'<div class="empty">{safe(text)}</div>')
 
 
 def stat_grid(items):
     cells = "".join(f'<div class="stat {cls}"><b>{safe(v)}</b><span>{safe(k)}</span></div>'
                     for k, v, cls in items)
-    st.markdown(f'<div class="stat-grid">{cells}</div>', unsafe_allow_html=True)
+    html_block(f'<div class="stat-grid">{cells}</div>')
 
 
 def chips_html(signals):
@@ -714,13 +829,12 @@ def budget_box(p):
     pct = spent / budget * 100 if budget else 0
     left = budget - spent
     left_txt = f"남은 예산 {money(left)}" if left >= 0 else f"{money(-left)} 초과"
-    st.markdown(
+    html_block(
         f'<div class="budget"><div class="kicker">{p["now"].month}월 예산</div>'
         f'<div class="top"><b>{money(spent)}</b><span>/ {money(budget)}</span></div>'
         f'<div class="progress-bg"><div class="progress-fill{" over" if pct > 100 else ""}" '
         f'style="width:{min(100, pct):.1f}%"></div></div>'
-        f'<div class="rmeta">{pct:.0f}% 사용 · {left_txt}</div></div>',
-        unsafe_allow_html=True,
+        f'<div class="meta">{pct:.0f}% 사용 · {left_txt}</div></div>'
     )
 
 
@@ -729,26 +843,23 @@ def piggy_bank(records, compact=False):
     total = sum(number(r.get("saved_amount")) for r in completed)
     goal = max(1, get_setting("cfg_goal", DEFAULT_GOAL))
     pct = min(100, total / goal * 100)
-    st.markdown(
+    html_block(
         f'<div class="pig"><div class="emoji">🐷</div><div class="kicker">CHECKI SAVINGS</div>'
         f'<div class="amount">{money(total)}</div>'
         f'<div class="sub">구매하지 않기로 결정한 금액 · {len(completed)}건</div>'
         f'<div class="progress-bg"><div class="progress-fill" style="width:{pct:.1f}%"></div></div>'
-        f'<div class="sub">저금 목표 {money(goal)} · 달성률 {pct:.1f}%</div></div>',
-        unsafe_allow_html=True,
+        f'<div class="sub">저금 목표 {money(goal)} · 달성률 {pct:.1f}%</div></div>'
     )
     if compact:
         return
-    with st.expander("🎯 저금 목표 설정"):
+    if st.toggle("🎯 저금 목표 바꾸기", key="goal_toggle"):
         new_goal = st.number_input("목표 금액 (원)", min_value=1000, step=10000,
                                    value=int(goal), key="goal_input")
-        if st.button("목표 적용", key="goal_save"):
+        if st.button("목표 적용", key="goal_save", use_container_width=True):
             set_setting("cfg_goal", new_goal)
+            ss["notice"] = "저금 목표를 바꿨어요."
             st.rerun()
-    st.caption("실제 계좌 잔액이 아니라, 구매 포기 금액을 합산한 가상 저금통입니다.")
-    for r in completed[:5]:
-        card(f"💚 {r.get('product_name') or '상품'} · +{money(r.get('saved_amount'))}",
-             "구매하지 않기로 결정했어요")
+    st.caption("실제 계좌 잔액이 아니라, 구매 포기 금액을 합산한 가상 저금통이에요.")
 
 
 def record_card(r):
@@ -758,12 +869,11 @@ def record_card(r):
     meta = " · ".join(x for x in [r.get("category") or "기타", money(r.get("product_price")),
                                   f"위험도 {r.get('risk_level') or '미확인'}", when] if x)
     summary = r.get("one_line_summary")
-    st.markdown(
+    html_block(
         f'<div class="rcard"><div class="rtop"><b>{safe(r.get("product_name") or "상품")}</b>'
-        f'<span class="badge {decision}">{DECISION_BADGE.get(decision, decision)}</span></div>'
-        f'<div class="rmeta">{safe(meta)}</div>'
-        + (f'<div class="rsum">{safe(summary)}</div>' if summary else "") + "</div>",
-        unsafe_allow_html=True,
+        f'<span class="badge {decision}">{DECISION_BADGE.get(decision, safe(decision))}</span></div>'
+        f'<div class="meta">{safe(meta)}</div>'
+        + (f'<div class="rsum">{safe(summary)}</div>' if summary else "") + "</div>"
     )
 
 
@@ -772,11 +882,10 @@ def _hold_timer_body(until_iso):
     secs = max(0, int((until - now_kst()).total_seconds())) if until else 0
     if secs <= 0:
         st.rerun()
-    st.markdown(
-        f'<div class="hold"><div>⏱️ 구매 보류 중</div>'
+    html_block(
+        f'<div class="hold"><div>⏱️ 생각하는 중</div>'
         f'<div class="clock">{secs // 60:02d}:{secs % 60:02d}</div>'
-        f'<small>타이머가 끝나면 구매 여부를 결정할 수 있어요.</small></div>',
-        unsafe_allow_html=True,
+        f'<small>타이머가 끝나면 구매 여부를 결정할 수 있어요.</small></div>'
     )
 
 
@@ -792,113 +901,141 @@ except Exception:
 # =============================================================
 # 화면
 # =============================================================
-st.markdown('<div class="brand"><strong>CHECKI</strong> &nbsp; <b>| 체키</b>'
-            '<small>CHECK BEFORE YOU BUY</small></div>', unsafe_allow_html=True)
-
-if "pending_nav" in st.session_state:
-    st.session_state["nav"] = st.session_state.pop("pending_nav")
-if st.session_state.get("nav") not in NAV:
-    st.session_state["nav"] = "홈"
-page = st.radio("메뉴", NAV, horizontal=True, label_visibility="collapsed", key="nav")
-
 expenses, records = get_expenses(), get_records()
 profile = build_profile(expenses, records)
 
+mode_html = ('<span class="mode on">● 저장 중</span>' if online()
+             else '<span class="mode off">● 체험 모드</span>')
+html_block(f'<div class="topbar"><div class="logo"><b>CHECKI</b><span>체키</span>'
+           f'<small>CHECK BEFORE YOU BUY</small></div>{mode_html}</div>')
+
+if "pending_nav" in ss:
+    ss["nav"] = ss.pop("pending_nav")
+if ss.get("nav") not in NAV:
+    ss["nav"] = ss.get("last_nav", "홈") if ss.get("last_nav") in NAV else "홈"
+if hasattr(st, "segmented_control"):
+    page = st.segmented_control("메뉴", NAV, key="nav", label_visibility="collapsed",
+                                format_func=lambda x: f"{NAV_ICON.get(x, '')} {x}")
+    if page not in NAV:  # 선택된 탭을 다시 눌러 해제된 경우 → 이전 탭 유지
+        go(ss.get("last_nav", "홈"))
+        st.rerun()
+else:
+    page = st.radio("메뉴", NAV, key="nav", horizontal=True, label_visibility="collapsed",
+                    format_func=lambda x: f"{NAV_ICON.get(x, '')} {x}")
+ss["last_nav"] = page
+
+if not online():
+    html_block('<div class="alert off">🧪 서버(DB)에 연결하지 못해 <b>&nbsp;체험 모드&nbsp;</b>로 동작 중이에요. '
+               '기록은 이 화면을 닫기 전까지만 유지돼요.</div>')
+    if supabase is not None and st.button("🔄 서버 다시 연결하기", key="reconnect"):
+        ss.pop("db_offline", None)
+        st.rerun()
+
 # ---------------- 홈 ----------------
 if page == "홈":
-    hero('사기 전에, <em>체키</em> 해보세요.',
-         "쇼핑 화면 속 구매 유도 요소와 <b>나의 소비 패턴</b>을 함께 분석해<br>"
-         "지금 사도 괜찮은지 알려드려요.")
-    mascot("scan", 140)
-
-    if profile["has_data"]:
-        stat_grid([
-            ("이번 달 소비", money(profile["month_spent"]), "blue"),
-            ("아낀 금액", money(profile["saved"]), "green"),
-            ("보류 중", f"{profile['decisions']['HOLD']}건", ""),
-        ])
-        ready = [r for r in records if r.get("decision") == "HOLD"
-                 and (parse_date(r.get("hold_until")) or now_kst()) <= now_kst()]
-        if ready:
-            st.markdown(f'<div class="alert">⏰ 30분이 지난 보류 상품이 {len(ready)}개 있어요. '
-                        f'MY에서 결정해주세요.</div>', unsafe_allow_html=True)
-
-    if st.button("🔎 지금 구매체크 시작하기", type="primary", use_container_width=True):
-        go("구매체크")
+    src = mascot_src("scan")
+    img = f'<img src="{src}" alt="">' if src else ""
+    html_block(
+        '<div class="hero-card"><span class="pill">AI 구매 판단 도우미</span>'
+        '<h1>사기 전에,<br>체키 해보세요</h1>'
+        '<p>쇼핑 화면 속 구매 유도 요소와 나의 소비 패턴을 함께 보고 지금 사도 괜찮은지 알려드려요.</p>'
+        f'{img}</div>'
+    )
+    if st.button("🔎 지금 구매체크 시작하기", type="primary", use_container_width=True, key="home_cta"):
+        go("체크")
         st.rerun()
+
+    stat_grid([
+        ("이번 달 소비", money(profile["month_spent"]), "blue"),
+        ("아낀 금액", money(profile["saved"]), "green"),
+        ("보류 중", f"{profile['decisions']['HOLD']}건", ""),
+    ])
+    ready = [r for r in records if r.get("decision") == "HOLD"
+             and (parse_date(r.get("hold_until")) or now_kst()) <= now_kst()]
+    if ready:
+        html_block(f'<div class="alert">⏰ 30분이 지난 보류 상품이 {len(ready)}개 있어요.</div>')
+        if st.button("결정하러 가기", use_container_width=True, key="home_ready"):
+            go("기록")
+            st.rerun()
 
     section("체키는 이렇게 판단해요", "AI 소비 분석 흐름")
     steps = [
         ("소비 데이터 수집", "체크한 상품의 가격·카테고리, 구매 금액과 시간을 기록해요."),
-        ("분류·축적", "카테고리·시간대·구매/보류/포기 결과별로 차곡차곡 쌓아요."),
+        ("분류·축적", "카테고리·시간대·구매/보류/포기 결과별로 쌓아요."),
         ("개인 소비 패턴 분석", "예산 대비 소비, 반복 구매, 심야 구매 습관을 찾아요."),
         ("구매 직전 맞춤 판단", "화면 속 유도 요소 + 내 소비 패턴으로 지금 사도 될지 알려줘요."),
         ("결과 반영·소비 리포트", "선택 결과가 다음 판단과 AI 소비 리포트에 반영돼요."),
     ]
-    st.markdown('<div class="flow">' + "".join(
+    html_block('<div class="flow">' + "".join(
         f'<div class="flow-step"><div class="n">{i}</div><div><b>{t}</b><p>{d}</p></div></div>'
-        for i, (t, d) in enumerate(steps, 1)) + "</div>", unsafe_allow_html=True)
+        for i, (t, d) in enumerate(steps, 1)) + "</div>")
 
-# ---------------- 구매체크 ----------------
-elif page == "구매체크":
-    hero('구매 전 <em>체키</em>', "쇼핑 화면을 캡처하거나 상품 링크를 넣어주세요.")
+# ---------------- 체크 ----------------
+elif page == "체크":
+    page_head('구매 전 <em>체키</em>', "쇼핑 화면이나 링크를 넣으면 AI가 함께 판단해요.", "search")
 
-    product_name = st.text_input("상품명", placeholder="예: 무선 이어폰")
+    step_title(1, "상품 정보")
+    product_name = st.text_input("상품명", placeholder="예: 무선 이어폰", key="in_name")
     c1, c2 = st.columns(2)
     with c1:
-        category = st.selectbox("카테고리", CATEGORIES)
+        category = st.selectbox("카테고리", CATEGORIES, key="in_cat")
     with c2:
-        user_price = st.number_input("가격 (선택)", min_value=0, step=1000, value=0,
+        user_price = st.number_input("가격 (선택)", min_value=0, step=1000, value=0, key="in_price",
                                      help="화면에서 가격을 못 읽을 때 사용해요.")
-    input_type = st.radio("분석 방법", ["스크린샷", "상품 링크"], horizontal=True)
-    image, product_url = None, None
-    if input_type == "스크린샷":
-        uploaded_file = st.file_uploader("쇼핑 화면 업로드", type=["png", "jpg", "jpeg", "webp"])
+
+    step_title(2, "쇼핑 화면")
+    tab_shot, tab_link = st.tabs(["📸 스크린샷", "🔗 상품 링크"])
+    image = None
+    with tab_shot:
+        uploaded_file = st.file_uploader("쇼핑 화면 업로드", type=["png", "jpg", "jpeg", "webp"],
+                                         key="in_file", label_visibility="collapsed")
         if uploaded_file:
             try:
                 image = Image.open(uploaded_file)
                 preview_image(image)
             except Exception:
                 st.warning("이미지 파일을 열지 못했어요.")
-    else:
-        product_url = st.text_input("상품 링크", placeholder="https://...")
+    with tab_link:
+        product_url = st.text_input("상품 링크", placeholder="https://...", key="in_url",
+                                    label_visibility="collapsed")
+        st.caption("스크린샷이 함께 있으면 스크린샷을 우선 분석해요.")
 
     cat_spent = profile["month_by_cat"].get(category, 0)
-    st.caption(f"📊 함께 반영할 내 데이터 · 이번 달 {category} {money(cat_spent)} · "
-               f"남은 예산 {money(profile['budget_left'])} · 지금 {time_slot(profile['now'].hour)} 시간대")
+    html_block('<div class="data-chip">'
+               f'<span>📊 이번 달 {safe(category)} {money(cat_spent)}</span>'
+               f'<span>💰 남은 예산 {money(profile["budget_left"])}</span>'
+               f'<span>🕒 지금 {time_slot(profile["now"].hour)}</span></div>')
 
-    if st.button("체키로 분석하기", type="primary", use_container_width=True):
+    if st.button("체키로 분석하기", type="primary", use_container_width=True, key="analyze"):
+        url = (product_url or "").strip()
         if not product_name.strip():
             st.warning("상품명을 입력해주세요.")
-        elif input_type == "스크린샷" and image is None:
-            st.warning("쇼핑 화면을 올려주세요.")
-        elif input_type == "상품 링크" and not (product_url or "").strip():
-            st.warning("상품 링크를 입력해주세요.")
+        elif image is None and not url:
+            st.warning("스크린샷을 올리거나 상품 링크를 넣어주세요.")
         else:
             try:
                 page_text = None
-                if input_type == "상품 링크":
+                if image is None and url:
                     with st.spinner("상품 페이지를 확인하고 있어요..."):
-                        page_text = read_url(product_url.strip())
+                        page_text = read_url(url)
                 pre_signals = personal_signals(profile, product_name, category, number(user_price))
                 context = profile_to_text(profile, category, number(user_price), pre_signals)
                 with st.spinner("구매 화면과 내 소비 패턴을 함께 분석하고 있어요..."):
-                    result = analyze_product(product_name, category, image, page_text,
+                    result = analyze_product(product_name.strip(), category, image, page_text,
                                              number(user_price), context)
                 result["signals"] = personal_signals(profile, result["product_name"],
                                                      category, number(result["price"]))
-                st.session_state["latest_analysis"] = result
-                st.session_state["latest_category"] = category
-                st.session_state["latest_record"] = insert_record(result, category, "PENDING")
-                st.session_state.pop("purchase_action", None)
+                ss["latest_analysis"] = result
+                ss["latest_category"] = category
+                ss["latest_record"] = insert_record(result, category, "PENDING")
+                ss.pop("purchase_action", None)
             except Exception as exc:
                 st.error(f"분석을 완료하지 못했어요: {exc}")
-                if input_type == "상품 링크":
-                    st.info("상품 페이지 접근이 차단된 경우 스크린샷 분석을 이용해주세요.")
+                if image is None:
+                    st.info("상품 페이지 접근이 차단된 경우 스크린샷으로 분석해주세요.")
 
-    result = st.session_state.get("latest_analysis")
+    result = ss.get("latest_analysis")
     if result:
-        mascot("search", 120)
         level = result["risk_level"]
         cls = {"LOW": "low", "MEDIUM": "medium", "HIGH": "high"}[level]
         name = {"LOW": "낮음", "MEDIUM": "주의", "HIGH": "높음"}[level]
@@ -908,79 +1045,74 @@ elif page == "구매체크":
         no_issue = not parts or parts[0] in ("없음", "확인 필요")
         tags = "".join(f'<span class="tag{"" if no_issue else " warn"}">{safe(x)}</span>'
                        for x in (parts or ["없음"]))
-        st.markdown(
+        section("분석 결과")
+        html_block(
             f'<div class="result"><div class="kicker">STEP 1 · 구매 화면 분석</div>'
             f'<div class="result-head"><div class="gauge" style="--p:{score};--c:{color}">'
             f'<span>{score}<small>/ 100</small></span></div>'
             f'<div><span class="level {cls}">구매 유도 위험 {name}</span>'
             f'<h3>{safe(result["summary"])}</h3></div></div>'
             f'<dl class="kv"><dt>발견된 유도 요소</dt><dd><div class="tags">{tags}</div></dd>'
-            f'<dt>구매 전 확인할 점</dt><dd>{safe(result["advice"])}</dd></dl></div>',
-            unsafe_allow_html=True,
+            f'<dt>구매 전 확인할 점</dt><dd>{safe(result["advice"])}</dd></dl></div>'
         )
         rec = result.get("recommend", "HOLD")
-        icon, rec_title = RECOMMEND[rec]
-        st.markdown(
+        icon, rec_title = RECOMMEND.get(rec, RECOMMEND["HOLD"])
+        price_txt = (f"확인된 가격 {money(result['price'])}" if number(result["price"]) > 0
+                     else "가격 미확인 · 포기 시 절약 금액 0원으로 기록")
+        html_block(
             f'<div class="result"><div class="kicker">STEP 2 · 나에게 맞춘 판단</div>'
             f'<div class="rec {rec}"><div class="icon">{icon}</div><div><b>{rec_title}</b>'
             f'<span>{safe(result.get("personal"))}</span></div></div>'
-            f'{chips_html(result.get("signals", []))}</div>',
-            unsafe_allow_html=True,
+            f'{chips_html(result.get("signals", []))}'
+            f'<div class="meta" style="margin-top:10px">💳 {safe(price_txt)}</div></div>'
         )
-        with st.expander("🔍 AI가 참고한 내 소비 데이터"):
-            st.code(result.get("context") or "데이터 없음", language=None)
-
-        if number(result["price"]) > 0:
-            st.info(f"확인된 상품 가격: **{money(result['price'])}**")
-        else:
-            st.info("가격을 확인하지 못했어요. 구매 포기 시 절약 금액은 0원으로 기록됩니다.")
+        if st.toggle("🔍 AI가 참고한 내 소비 데이터 보기", key="show_ctx"):
+            html_block(f'<div class="ctx">{safe(result.get("context") or "데이터 없음")}</div>')
 
         section("어떻게 할까요?", "선택 결과는 다음 분석과 소비 리포트에 반영돼요.")
-        if st.session_state.get("purchase_action") == "BUY":
+        if ss.get("purchase_action") == "BUY":
             amount = st.number_input("실제로 결제할 금액", min_value=0, step=1000,
                                      value=number(result["price"]), key="latest_buy_amount")
-            if st.button("구매 기록 저장", type="primary", use_container_width=True):
+            if st.button("구매 기록 저장", type="primary", use_container_width=True, key="buy_save"):
                 if finalize_latest("BUY"):
-                    if add_expense(st.session_state.get("latest_category", "기타"),
-                                   result["product_name"], amount):
+                    if add_expense(ss.get("latest_category", "기타"), result["product_name"], amount):
                         clear_latest()
-                        st.session_state["notice"] = "구매 기록을 저장했어요."
-                        go("소비분석")
+                        ss["notice"] = "구매 기록을 저장했어요."
+                        go("리포트")
                         st.rerun()
                     else:
                         st.warning("체키 기록은 구매 완료로 변경됐지만 소비 내역 저장에 실패했어요.")
-            if st.button("이전 선택으로 돌아가기", use_container_width=True):
-                st.session_state.pop("purchase_action", None)
+            if st.button("이전 선택으로 돌아가기", use_container_width=True, key="buy_back"):
+                ss.pop("purchase_action", None)
                 st.rerun()
         else:
             b1, b2, b3 = st.columns(3)
             with b1:
-                if st.button("⏱️ 30분 보류", use_container_width=True,
+                if st.button("⏱️ 30분 보류", use_container_width=True, key="act_hold",
                              type="primary" if rec == "HOLD" else "secondary"):
                     if finalize_latest("HOLD"):
                         clear_latest()
-                        st.session_state["notice"] = "30분 보류를 시작했어요."
-                        go("MY")
+                        ss["notice"] = "30분 보류를 시작했어요."
+                        go("기록")
                         st.rerun()
             with b2:
-                if st.button("🙅 사지 않기", use_container_width=True,
+                if st.button("🙅 사지 않기", use_container_width=True, key="act_no",
                              type="primary" if rec == "RECONSIDER" else "secondary"):
                     saved = number(result["price"])
                     if finalize_latest("NOT_BUY", saved):
                         clear_latest()
-                        st.session_state["notice"] = f"{money(saved)}을(를) 저금통에 기록했어요."
-                        go("MY")
+                        ss["notice"] = f"{money(saved)}을(를) 저금통에 기록했어요."
+                        go("기록")
                         st.rerun()
             with b3:
-                if st.button("🛒 구매하기", use_container_width=True,
+                if st.button("🛒 구매하기", use_container_width=True, key="act_buy",
                              type="primary" if rec == "BUY" else "secondary"):
-                    st.session_state["purchase_action"] = "BUY"
+                    ss["purchase_action"] = "BUY"
                     st.rerun()
 
-# ---------------- 소비분석 ----------------
-elif page == "소비분석":
-    hero('나의 <em>소비 리포트</em>', "쌓인 기록으로 나의 소비 패턴을 분석해요.")
-    mascot("chart", 120)
+# ---------------- 리포트 ----------------
+elif page == "리포트":
+    page_head('나의 <em>소비 리포트</em>', "쌓인 기록으로 나의 소비 패턴을 분석해요.", "chart")
     p = profile
     left = p["budget_left"]
     stat_grid([
@@ -989,29 +1121,37 @@ elif page == "소비분석":
         ("아낀 금액", money(p["saved"]), "green"),
     ])
 
+    if not expenses:
+        html_block('<div class="empty">아직 소비 기록이 없어요.<br>'
+                   '구매를 기록하거나 체험용 샘플로 리포트를 미리 볼 수 있어요.</div>')
+        if st.button("✨ 체험용 샘플 소비 넣기", use_container_width=True, key="sample"):
+            add_sample_data()
+            ss["notice"] = "샘플 소비 10건을 넣었어요."
+            st.rerun()
+
     section("💰 예산")
     budget_box(p)
-    with st.expander("월 예산 설정"):
+    if st.toggle("월 예산 바꾸기", key="budget_toggle"):
         new_budget = st.number_input("월 예산 (원)", min_value=10000, step=50000,
                                      value=int(p["budget"]), key="budget_input")
-        if st.button("예산 적용", key="budget_save"):
+        if st.button("예산 적용", key="budget_save", use_container_width=True):
             set_setting("cfg_budget", new_budget)
+            ss["notice"] = "월 예산을 바꿨어요."
             st.rerun()
 
     section("🗂️ 카테고리별 소비", "이번 달")
     if p["month_by_cat"]:
-        st.markdown(bars_html(p["month_by_cat"].most_common()), unsafe_allow_html=True)
+        html_block(bars_html(p["month_by_cat"].most_common()))
     else:
-        st.info("이번 달 소비 기록이 없어요.")
+        empty("이번 달 소비 기록이 없어요.")
 
-    section("🕒 구매 시간대", "전체 구매 기준")
+    section("🕒 구매 시간대", "전체 구매 기준 · 보라색은 심야")
     if p["timed"]:
         slot_items = [(n, p["slots"].get(n, 0)) for n, _, _ in TIME_SLOTS]
-        st.markdown(bars_html(slot_items, fmt=lambda v: f"{v}회", highlight=("새벽", "밤")),
-                    unsafe_allow_html=True)
+        html_block(bars_html(slot_items, fmt=lambda v: f"{v}회", highlight=("새벽", "밤")))
         st.caption(f"심야(밤 10시~새벽 5시) 구매 비율 {p['late_ratio'] * 100:.0f}%")
     else:
-        st.info("구매 시간 기록이 없어요.")
+        empty("구매 시간 기록이 없어요.")
 
     section("🧠 구매 결정 습관")
     d = p["decisions"]
@@ -1025,58 +1165,57 @@ elif page == "소비분석":
     items = [("mid", f"최근 90일 '{n}' {c}회 구매") for n, c in p["repeats"][:5]]
     if p["subs_month"]:
         items.append(("info", f"이번 달 정기결제 {len(p['subs_month'])}건 · {money(p['subs_total'])}"))
-    st.markdown(chips_html(items or [("good", "반복 구매나 정기결제 기록이 없어요.")]),
-                unsafe_allow_html=True)
+    html_block(chips_html(items or [("good", "반복 구매나 정기결제 기록이 없어요.")]))
 
     section("✨ AI 소비 리포트", "위 데이터를 바탕으로 AI가 요약해요.")
     if st.button("리포트 생성하기", type="primary", use_container_width=True,
-                 disabled=not expenses):
+                 disabled=not expenses, key="report_btn"):
         try:
             with st.spinner("소비 패턴을 정리하고 있어요..."):
-                st.session_state["ai_report"] = ai_report(p)
+                ss["ai_report"] = ai_report(p)
         except Exception as exc:
             st.error(f"리포트를 만들지 못했어요: {exc}")
-    if not expenses:
-        st.caption("소비 기록이 있어야 리포트를 만들 수 있어요.")
-    if st.session_state.get("ai_report"):
+    if ss.get("ai_report"):
         with st.container(border=True):
-            st.markdown(st.session_state["ai_report"])
+            st.markdown(ss["ai_report"])
 
     section("🐷 체키 저금통")
     piggy_bank(records, compact=False)
 
     section("🧾 최근 소비")
-    with st.expander("➕ 소비 직접 기록하기"):
+    if st.toggle("➕ 소비 직접 기록하기", key="add_toggle"):
         e_cat = st.selectbox("카테고리", CATEGORIES, key="e_cat")
         e_name = st.text_input("항목", key="e_name", placeholder="예: 점심, 넷플릭스")
         e_amt = st.number_input("금액 (원)", min_value=0, step=1000, key="e_amt")
         if st.button("기록 추가", key="e_save", use_container_width=True):
             if e_name.strip() and e_amt > 0:
                 if add_expense(e_cat, e_name.strip(), e_amt):
-                    st.session_state["notice"] = "소비를 기록했어요."
+                    ss["notice"] = "소비를 기록했어요."
                     st.rerun()
             else:
                 st.warning("항목과 금액을 입력해주세요.")
     if not expenses:
-        st.info("아직 등록된 소비가 없어요.")
+        empty("아직 등록된 소비가 없어요.")
     for x in expenses[:10]:
         t = expense_time(x)
         when = f" · {t:%m.%d %H:%M}" if t else ""
         card(str(x.get("item_name") or "상품"),
              f"{x.get('category') or '기타'} · {money(x.get('amount'))}{when}")
 
-# ---------------- MY ----------------
-elif page == "MY":
-    hero('나의 <em>체키 기록</em>', "보류 중인 상품과 구매 결정 내역을 확인해보세요.")
+# ---------------- 기록 ----------------
+elif page == "기록":
+    page_head('나의 <em>체키 기록</em>', "보류 중인 상품과 구매 결정 내역이에요.", "wait")
     if not records:
-        mascot("wait", 110)
-        st.info("아직 체키 기록이 없어요. 구매체크를 먼저 해보세요.")
+        empty("아직 체키 기록이 없어요. 구매체크를 먼저 해보세요.")
+        if st.button("🔎 구매체크 하러 가기", type="primary", use_container_width=True, key="rec_cta"):
+            go("체크")
+            st.rerun()
     else:
-        # 보류 중 → 선택 대기 → 결정 완료 순서
         order = {"HOLD": 0, "PENDING": 1}
         shown = sorted(records[:30], key=lambda r: order.get(r.get("decision"), 2))
-        for record in shown:
+        for idx, record in enumerate(shown):
             rid = record.get("id")
+            kid = rid if rid else f"i{idx}"
             decision = str(record.get("decision") or "PENDING")
             product = str(record.get("product_name") or "상품")
             price = number(record.get("product_price"))
@@ -1087,43 +1226,43 @@ elif page == "MY":
                 seconds = max(0, int((until - now_kst()).total_seconds())) if until else 0
                 if seconds > 0:
                     hold_timer(record.get("hold_until"))
-                    if not LIVE_TIMER and st.button("남은 시간 새로고침", key=f"refresh_{rid}"):
+                    if not LIVE_TIMER and st.button("남은 시간 새로고침", key=f"refresh_{kid}"):
                         st.rerun()
                 else:
                     st.success("30분이 지났어요. 지금도 꼭 필요한가요?")
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("🙅 사지 않았어요", key=f"no_{rid}", use_container_width=True):
+                        if st.button("🙅 사지 않았어요", key=f"no_{kid}", use_container_width=True):
                             if update_record(rid, "NOT_BUY", price):
-                                st.session_state["notice"] = f"{money(price)}을(를) 저금통에 기록했어요."
+                                ss["notice"] = f"{money(price)}을(를) 저금통에 기록했어요."
                                 st.rerun()
                     with col2:
-                        if st.button("🛒 구매했어요", key=f"yes_{rid}", use_container_width=True):
-                            st.session_state["buy_record"] = rid
-                    if st.session_state.get("buy_record") == rid:
+                        if st.button("🛒 구매했어요", key=f"yes_{kid}", use_container_width=True):
+                            ss["buy_record"] = kid
+                    if ss.get("buy_record") == kid:
                         actual = st.number_input("실제 결제 금액", min_value=0, step=1000,
-                                                 value=price, key=f"amount_{rid}")
-                        if st.button("구매 내역 저장", key=f"save_{rid}", type="primary",
+                                                 value=price, key=f"amount_{kid}")
+                        if st.button("구매 내역 저장", key=f"save_{kid}", type="primary",
                                      use_container_width=True):
                             if update_record(rid, "BUY"):
                                 if add_expense(str(record.get("category") or "기타"), product, actual):
-                                    st.session_state.pop("buy_record", None)
-                                    st.session_state["notice"] = "구매 내역을 저장했어요."
+                                    ss.pop("buy_record", None)
+                                    ss["notice"] = "구매 내역을 저장했어요."
                                     st.rerun()
             elif decision == "NOT_BUY":
                 st.caption(f"💚 {money(record.get('saved_amount'))} 절약")
             elif decision == "PENDING":
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button("⏱️ 30분 보류", key=f"pending_hold_{rid}", use_container_width=True):
+                    if st.button("⏱️ 30분 보류", key=f"pending_hold_{kid}", use_container_width=True):
                         if update_record(rid, "HOLD"):
                             st.rerun()
                 with col2:
-                    if st.button("🙅 사지 않기", key=f"pending_no_{rid}", use_container_width=True):
+                    if st.button("🙅 사지 않기", key=f"pending_no_{kid}", use_container_width=True):
                         if update_record(rid, "NOT_BUY", price):
                             st.rerun()
     section("🐷 체키 저금통")
     piggy_bank(records, compact=True)
 
-if st.session_state.get("notice"):
-    st.toast(st.session_state.pop("notice"))
+if ss.get("notice"):
+    st.toast(ss.pop("notice"))
