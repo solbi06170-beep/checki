@@ -174,19 +174,16 @@ st.markdown("""
 header[data-testid="stHeader"],#MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"],
 [data-testid="stStatusWidget"]{display:none!important}
 
-/* 앱 화면(폰 프레임) */
-.block-container{max-width:440px!important;padding:14px 16px 120px!important}
-@media(min-width:641px){
-  .block-container{background:var(--surface);border-radius:40px;margin:22px auto 30px;min-height:calc(100vh - 52px);
-    box-shadow:0 30px 80px #1C5FA426,0 0 0 1px #FFFFFFAA inset;padding:22px 20px 120px!important}
-}
+/* 앱 화면: 모바일 폭으로 가운데 정렬 */
+.block-container{max-width:440px!important;padding:14px 16px 64px!important}
 
-/* 하단 탭바 */
-.st-key-nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(404px,calc(100vw - 24px));z-index:1000}
-[data-testid="stButtonGroup"]{width:100%}
-[data-testid="stButtonGroup"] > div{width:100%;display:flex;flex-wrap:nowrap;background:#FFFFFFF2;backdrop-filter:blur(14px);
-  border:1px solid var(--line);border-radius:24px;padding:6px;gap:4px;box-shadow:0 14px 34px #1C5FA42E}
-[data-testid="stButtonGroup"] button{flex:1 1 0!important;min-width:0!important;border:0!important;border-radius:18px!important;
+/* 메뉴 탭: 화면 위쪽에 고정하지 않고 배치 → 내용을 가리지 않음 */
+.st-key-nav,.st-key-nav > div,.st-key-nav [data-testid="stButtonGroup"],
+.st-key-nav [data-testid="stButtonGroup"] > div{width:100%!important;max-width:100%!important}
+.st-key-nav{margin:0 0 6px}
+[data-testid="stButtonGroup"] div:has(> button){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));width:100%!important;
+  background:#FFFFFF;border:1px solid var(--line);border-radius:22px;padding:5px;gap:4px;box-shadow:0 8px 24px #1C5FA41F}
+[data-testid="stButtonGroup"] button{width:100%!important;min-width:0!important;border:0!important;border-radius:17px!important;
   min-height:48px;padding:0 4px!important;background:transparent!important;color:var(--muted)!important;box-shadow:none!important}
 [data-testid="stButtonGroup"] button *{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important}
 [data-testid="stButtonGroup"] button p{font-size:13px!important;font-weight:800!important;color:inherit!important;margin:0!important}
@@ -351,6 +348,7 @@ div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"]{background:#fff;box-shadow:0 4px 10px #1C5FA41A}
 [data-testid="stTabs"] button p{font-weight:800}
 [data-testid="stTabs"] [data-baseweb="tab-highlight"],[data-testid="stTabs"] [data-baseweb="tab-border"]{display:none}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p{color:var(--blue)!important}
 [data-testid="stWidgetLabel"] p{font-weight:700;color:#4A6378}
 </style>
 """, unsafe_allow_html=True)
@@ -975,8 +973,12 @@ if "pending_nav" in ss:
 if ss.get("nav") not in NAV:
     ss["nav"] = ss.get("last_nav") if ss.get("last_nav") in NAV else "홈"
 if hasattr(st, "segmented_control"):
-    page = st.segmented_control("메뉴", NAV, key="nav", label_visibility="collapsed",
-                                format_func=lambda x: f"{NAV_ICON.get(x, '')} {x}")
+    nav_kwargs = dict(key="nav", label_visibility="collapsed",
+                      format_func=lambda x: f"{NAV_ICON.get(x, '')} {x}")
+    try:
+        page = st.segmented_control("메뉴", NAV, width="stretch", **nav_kwargs)
+    except TypeError:  # width 옵션이 없는 버전
+        page = st.segmented_control("메뉴", NAV, **nav_kwargs)
     if page not in NAV:  # 선택된 탭을 다시 눌러 해제된 경우 → 이전 탭 유지
         go(ss.get("last_nav", "홈"))
         st.rerun()
