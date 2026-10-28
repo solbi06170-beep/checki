@@ -499,6 +499,32 @@ div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border
 .acct .em{position:absolute;right:16px;bottom:12px;font-size:52px;z-index:1;filter:drop-shadow(0 8px 10px #00000030)}
 .mflow{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#4A6378;margin:4px 0 8px;flex-wrap:wrap}
 .mflow span{background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 9px}
+/* 성장 레벨 */
+.lv{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:18px;padding:11px 13px;margin:0 0 8px}
+.badge-lv{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#FFF6D8,#FFE7A3);display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 40px}
+.lv .tx{flex:1;min-width:0}.lv .tx b{display:block;font-size:13.5px;color:var(--navy)}.lv .tx span{font-size:11.5px;color:var(--muted)}
+.lv .pb{height:6px;background:#EDF3F8;border-radius:10px;overflow:hidden;margin-top:6px}
+.lv .pb i{display:block;height:100%;background:linear-gradient(90deg,#FFC94D,#F5A300);border-radius:10px}
+/* 다크패턴 도감 */
+.dexgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dex{position:relative;background:#F2F5F8;border:1px dashed #D3DDE6;border-radius:18px;padding:13px;min-height:92px;filter:grayscale(1);opacity:.75}
+.dex.on{background:#fff;border:1px solid var(--line);filter:none;opacity:1;box-shadow:0 6px 18px #1C5FA40D}
+.dex b{display:block;font-size:14px;color:var(--c);font-weight:900}
+.dex span{display:block;font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.4}
+.dex .dn{position:absolute;right:12px;top:10px;min-width:24px;height:24px;border-radius:12px;background:var(--c);color:#fff;font-size:12px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;padding:0 6px}
+/* 이용 전후 비교 */
+.cmp{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #EEF3F8;font-size:13px}
+.cmp:last-child{border-bottom:0}
+.cmp .k{flex:0 0 auto;font-weight:800;color:var(--navy)}
+.cmp .v{flex:1;text-align:right;color:var(--muted);font-size:12px}.cmp .v b{color:var(--navy);font-size:13px}
+.dt{flex:0 0 auto;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:850;white-space:nowrap}
+.dt.good{background:#E3F7EE;color:#14855A}.dt.bad{background:#FFE6E6;color:#C23B3B}.dt.same{background:#EEF1F4;color:#55687A}
+/* 정기결제 요약 */
+.subsum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 6px}
+.subsum div{background:linear-gradient(135deg,#F3EFFF,#EAF3FF);border:1px solid #E1DAFB;border-radius:18px;padding:12px 14px}
+.subsum span{display:block;font-size:11.5px;color:#6B5FB5;font-weight:700}
+.subsum b{display:block;font-size:18px;font-weight:900;color:#3B2F8F;margin-top:2px}
 @media(max-width:400px){
   .mhero .m,.mhero .m img{width:128px}.phero .m,.phero .m img{width:110px}.mhero .big{font-size:24px}
 }
@@ -708,8 +734,8 @@ def add_sample_data():
     current = [
         ("식품", "배달 치킨", 23000, 0.05, 23), ("구독서비스", "넷플릭스", 17000, 0.10, 10),
         ("패션/의류", "후드티", 39000, 0.15, 0), ("뷰티", "선크림", 18000, 0.22, 14),
-        ("전자기기", "무선 이어폰", 42000, 0.30, 1), ("식품", "배달 치킨", 21000, 0.38, 22),
-        ("구독서비스", "유튜브 프리미엄", 14900, 0.45, 9), ("패션/의류", "운동화", 69000, 0.55, 23),
+        ("전자기기", "무선 이어폰", 42000, 0.30, 1), ("식품", "배달 치킨", 21000, 0.38, 19),
+        ("구독서비스", "유튜브 프리미엄", 14900, 0.45, 9), ("패션/의류", "운동화", 69000, 0.55, 19),
         ("생활용품", "세제", 12000, 0.62, 16), ("취미/여가", "보드게임", 18000, 0.80, 20),
     ]
     rows = []
@@ -722,8 +748,11 @@ def add_sample_data():
         if cat == "구독서비스":  # 지난달 같은 날 결제 → 정기결제로 감지
             rows.append((cat, name, amt, when - timedelta(days=30)))
     # 지난달 이전 소비 (월별 추이용)
-    for cat, name, amt, before, hour in [("패션/의류", "셔츠", 59000, 10, 21), ("식품", "장보기", 56000, 15, 18),
-                                         ("패션/의류", "모자", 45000, 32, 13), ("식품", "배달 피자", 27000, 40, 23)]:
+    before_rows = [("패션/의류", "셔츠", 59000, 10, 21), ("식품", "장보기", 56000, 15, 18),
+                   ("패션/의류", "원피스", 89000, 6, 23), ("식품", "배달 치킨", 25000, 8, 23),
+                   ("식품", "배달 치킨", 24000, 18, 0), ("전자기기", "무선 충전기", 39000, 20, 1),
+                   ("패션/의류", "모자", 45000, 32, 13), ("식품", "배달 피자", 27000, 40, 23)]
+    for cat, name, amt, before, hour in before_rows:
         rows.append((cat, name, amt, (month_start - timedelta(days=before)).replace(hour=hour, minute=15)))
     for cat, name, amt, when in rows:
         add_expense(cat, name, amt, when)
@@ -1307,15 +1336,72 @@ def account_card(p, records):
     goal = max(1, get_setting("cfg_goal", DEFAULT_GOAL))
     pct = min(100, total / goal * 100)
     tail = re.sub(r"\D", "", user_id)[-4:].rjust(4, "0")
+    lv, lv_icon, lv_name, lv_pct, lv_left = checker_level(total)
     html_block(
         f'<div class="acct"><div class="no">CHECKI 가상 저축계좌 · 1004-28-{tail}</div>'
         f'<div class="nm">체키 저축계좌</div><div class="bal">{money(total)}</div>'
         f'<div class="bar"><i style="width:{pct:.0f}%"></i></div>'
         f'<div class="sub">목표 {money(goal)} · {pct:.0f}% 달성 · 입금 {len(completed)}건</div>'
         f'<div class="em float">🐷</div></div>'
+        f'<div class="lv"><div class="badge-lv">{lv_icon}</div><div class="tx"><b>Lv.{lv} {lv_name}</b>'
+        f'<span>{"최고 레벨이에요! 정말 멋져요" if lv_left <= 0 else f"다음 레벨까지 {money(lv_left)} 더 모으면 돼요"}</span>'
+        f'<div class="pb"><i style="width:{lv_pct:.0f}%"></i></div></div></div>'
         '<div class="mflow"><span>🙅 구매 포기</span>→<span>💰 절약 금액 누적</span>→<span>🏦 가상 저축계좌 반영</span></div>'
     )
     return goal, completed
+
+
+LEVELS = [(0, "🌱", "새싹 체커"), (30000, "🔍", "똑똑 체커"), (100000, "💎", "알뜰 체커"), (200000, "👑", "마스터 체커")]
+
+
+def checker_level(saved):
+    idx = max(i for i, (need, _, _) in enumerate(LEVELS) if saved >= need)
+    _, icon, name = LEVELS[idx]
+    if idx + 1 < len(LEVELS):
+        nxt = LEVELS[idx + 1][0]
+        prev = LEVELS[idx][0]
+        return idx + 1, icon, name, (saved - prev) / (nxt - prev) * 100, nxt - saved
+    return idx + 1, icon, name, 100, 0
+
+
+def collect_patterns(records):
+    """기록에 저장된 AI 원문에서 지금까지 발견한 다크패턴을 유형별로 모은다 (다크패턴 도감)."""
+    found = {k: Counter() for k in PATTERN_TYPES}
+    for r in records:
+        for x in parse_patterns(str(r.get("ai_result") or "")):
+            found[x["type"]][x["name"]] += 1
+    return found
+
+
+def compare_months(p, records):
+    """체키 이용 전·후 비교: 지난달 전체 vs 이번 달(지금까지)."""
+    now = p["now"]
+    cur_key = (now.year, now.month)
+    prev_key = p["months"][-2]
+    cur_spend = sum(p["hist"][cur_key].values())
+    prev_spend = sum(p["hist"][prev_key].values())
+    late = {cur_key: 0, prev_key: 0}
+    for t, _ in p["purchases"]:
+        k = (t.year, t.month)
+        if k in late and t.hour in LATE_NIGHT:
+            late[k] += 1
+    saved_cur = 0
+    for r in records:
+        t = parse_date(r.get("decided_at")) or parse_date(r.get("created_at"))
+        if r.get("decision") == "NOT_BUY" and t and (t.year, t.month) == cur_key:
+            saved_cur += number(r.get("saved_amount"))
+    return {"prev_label": f"{prev_key[1]}월", "cur_label": f"{cur_key[1]}월",
+            "prev_spend": prev_spend, "cur_spend": cur_spend,
+            "prev_late": late[prev_key], "cur_late": late[cur_key], "saved_cur": saved_cur}
+
+
+def delta_html(prev, cur, fmt, lower_is_better=True):
+    diff = cur - prev
+    if diff == 0:
+        return '<span class="dt same">변화 없음</span>'
+    good = (diff < 0) == lower_is_better
+    arrow = "▼" if diff < 0 else "▲"
+    return f'<span class="dt {"good" if good else "bad"}">{arrow} {fmt(abs(diff))}</span>'
 
 
 def _hold_timer_body(until_iso):
@@ -1786,6 +1872,20 @@ elif page == "리포트":
 
     with tab3:
         html_block('<span class="premium">👑 PREMIUM · 1개월 무료 체험 중</span>')
+        sec("체키 이용 전·후 비교", sub="지난달 전체와 이번 달 지금까지를 비교해요.")
+        cmp = compare_months(p, records)
+        html_block(
+            '<div class="list">'
+            f'<div class="cmp"><span class="k">💳 지출</span><span class="v">{money(cmp["prev_spend"])} → <b>{money(cmp["cur_spend"])}</b></span>'
+            f'{delta_html(cmp["prev_spend"], cmp["cur_spend"], money)}</div>'
+            f'<div class="cmp"><span class="k">🌙 심야 구매</span><span class="v">{cmp["prev_late"]}회 → <b>{cmp["cur_late"]}회</b></span>'
+            f'{delta_html(cmp["prev_late"], cmp["cur_late"], lambda v: f"{v}회")}</div>'
+            f'<div class="cmp"><span class="k">🐷 체키로 아낀 돈</span><span class="v"><b>{money(cmp["saved_cur"])}</b></span>'
+            f'<span class="dt good">이번 달</span></div></div>'
+        )
+        if cmp["prev_spend"] > cmp["cur_spend"]:
+            talk("chart", "체키의 칭찬", f"{cmp['prev_label']}보다 {money(cmp['prev_spend'] - cmp['cur_spend'])} 덜 썼어요. 체키와 함께한 효과예요!")
+
         sec("구매 시간대", f"심야 {p['late_ratio'] * 100:.0f}%" if p["timed"] else "")
         if p["timed"]:
             slot_items = [(n, p["slots"].get(n, 0)) for n, _, _ in TIME_SLOTS]
@@ -1807,6 +1907,12 @@ elif page == "리포트":
 
         sec("정기결제 · 반복구매")
         if p["recurring"]:
+            monthly = sum(r["amount"] for r in p["recurring"])
+            html_block(
+                f'<div class="subsum"><div><span>정기결제 {len(p["recurring"])}건 · 매달</span><b>{money(monthly)}</b></div>'
+                f'<div><span>1년이면</span><b>{money(monthly * 12)}</b></div></div>'
+            )
+            st.caption("쓰지 않는 구독은 다음 결제일 전에 해지 조건을 확인해보세요.")
             rows = [(CAT_ICON.get(r["cat"], "🔁"), r["name"], f"{r['next']:%m월 %d일} 결제 예정 · {money(r['amount'])}",
                      f'<span class="dday{" soon" if r["days"] <= 7 else ""}">D-{r["days"]}</span>')
                     for r in p["recurring"]]
@@ -1835,6 +1941,19 @@ elif page == "기록":
     page_hero("보류 중인 상품과 결정 내역", "나의 <em>체키 기록</em>", "wait", say)
 
     goal, completed = account_card(p, records)
+    found = collect_patterns(records)
+    total_found = sum(sum(c.values()) for c in found.values())
+    sec("다크패턴 도감", f"{sum(1 for c in found.values() if c)}/4 유형 발견",
+        sub="체키가 지금까지 찾아낸 구매 유도 유형이에요.")
+    cells = []
+    for k, (color, desc) in PATTERN_TYPES.items():
+        cnt = sum(found[k].values())
+        top = ", ".join(n for n, _ in found[k].most_common(2))
+        cells.append(f'<div class="dex{" on" if cnt else ""}" style="--c:{color}"><div class="dn">{cnt}</div>'
+                     f'<b>{k}</b><span>{safe(top) if cnt else "아직 발견하지 못했어요"}</span></div>')
+    html_block(f'<div class="dexgrid">{"".join(cells)}</div>')
+    if not total_found:
+        st.caption("구매체크를 할수록 도감이 채워져요.")
     if st.toggle("🎯 저축 목표 바꾸기", key="goal_toggle"):
         new_goal = st.number_input("목표 금액 (원)", min_value=1000, step=10000,
                                    value=int(goal), key="goal_input")
@@ -1855,63 +1974,4 @@ elif page == "기록":
     sec("체키 기록", f"{len(records)}건" if records else "")
     if not records:
         empty("🗂️", "아직 체키 기록이 없어요.<br>구매체크를 먼저 해보세요.", "wait")
-        if st.button("🔎 구매체크 하러 가기", type="primary", use_container_width=True, key="rec_cta"):
-            go("체크")
-            st.rerun()
-    else:
-        order = {"HOLD": 0, "PENDING": 1}
-        shown = sorted(records[:30], key=lambda r: order.get(r.get("decision"), 2))
-        for idx, record in enumerate(shown):
-            rid = record.get("id")
-            kid = rid if rid else f"i{idx}"
-            decision = str(record.get("decision") or "PENDING")
-            product = str(record.get("product_name") or "상품")
-            price = number(record.get("product_price"))
-            record_row(record)
-
-            if decision == "HOLD":
-                until = parse_date(record.get("hold_until"))
-                seconds = max(0, int((until - now_kst()).total_seconds())) if until else 0
-                if seconds > 0:
-                    hold_timer(record.get("hold_until"))
-                    if not LIVE_TIMER and st.button("남은 시간 새로고침", key=f"refresh_{kid}"):
-                        st.rerun()
-                else:
-                    html_block('<div class="notice">⏰ 30분이 지났어요. 지금도 꼭 필요한가요?</div>')
-                # 타이머 진행 중에도 언제든 결정 가능
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("🙅 안 살래요", key=f"no_{kid}", use_container_width=True,
-                                 type="primary" if seconds > 0 else "secondary"):
-                        if update_record(rid, "NOT_BUY", price):
-                            ss.pop("buy_record", None)
-                            ss["notice"] = f"{money(price)}을(를) 저축계좌에 담았어요."
-                            st.rerun()
-                with col2:
-                    if st.button("🛒 살게요", key=f"yes_{kid}", use_container_width=True):
-                        ss["buy_record"] = kid
-                if ss.get("buy_record") == kid:
-                    actual = st.number_input("실제 결제 금액", min_value=0, step=1000,
-                                             value=price, key=f"amount_{kid}")
-                    if st.button("구매 내역 저장", key=f"save_{kid}", type="primary",
-                                 use_container_width=True):
-                        if update_record(rid, "BUY"):
-                            add_expense(str(record.get("category") or "기타"), product, actual)
-                            ss.pop("buy_record", None)
-                            ss["notice"] = "구매 내역을 저장했어요."
-                            st.rerun()
-            elif decision == "NOT_BUY":
-                st.caption(f"💚 {money(record.get('saved_amount'))} 저축계좌 입금")
-            elif decision == "PENDING":
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("⏱️ 잠시 보류", key=f"pending_hold_{kid}", use_container_width=True):
-                        if update_record(rid, "HOLD"):
-                            st.rerun()
-                with col2:
-                    if st.button("🙅 구매하지 않기", key=f"pending_no_{kid}", use_container_width=True):
-                        if update_record(rid, "NOT_BUY", price):
-                            st.rerun()
-
-if ss.get("notice"):
-    st.toast(ss.pop("notice"))
+        if st.
