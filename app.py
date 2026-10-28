@@ -350,6 +350,53 @@ div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border
 [data-testid="stTabs"] [data-baseweb="tab-highlight"],[data-testid="stTabs"] [data-baseweb="tab-border"]{display:none}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"] p{color:var(--blue)!important}
 [data-testid="stWidgetLabel"] p{font-weight:700;color:#4A6378}
+/* 마스코트 */
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes pop{0%{transform:translateY(6px) scale(.96);opacity:0}100%{transform:none;opacity:1}}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+.float{animation:floaty 3.4s ease-in-out infinite}
+.spark{position:absolute;z-index:1;color:#fff;font-size:13px;animation:twinkle 2.6s ease-in-out infinite}
+.mhero{position:relative;overflow:hidden;border-radius:30px;padding:20px 20px 18px;color:#fff;margin:0 0 12px;min-height:182px;
+  background:linear-gradient(140deg,#62B8FF 0%,#1689F8 45%,#0F4C9C 100%);box-shadow:0 18px 36px #1689F83D}
+.mhero:before{content:"";position:absolute;right:-40px;bottom:-50px;width:230px;height:230px;border-radius:50%;
+  background:radial-gradient(circle,#FFFFFF59 0%,#FFFFFF00 68%)}
+.mhero .tx{position:relative;z-index:2;max-width:60%}
+.mhero .pill{display:inline-block;background:#FFFFFF2B;border:1px solid #FFFFFF40;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800}
+.mhero .label{font-size:12.5px;color:#DDEEFF;font-weight:600;margin-top:12px}
+.mhero .big{font-size:27px;font-weight:900;letter-spacing:-1px;line-height:1.2;margin-top:2px;white-space:nowrap}
+.mhero .sub{font-size:11.5px;color:#CFE5FF;margin-top:2px}
+.mhero .bar{height:8px;background:#FFFFFF33;border-radius:10px;overflow:hidden;margin:10px 0 6px}
+.mhero .bar i{display:block;height:100%;background:#fff;border-radius:10px}
+.mhero .m{position:absolute;right:-4px;bottom:-6px;width:156px;z-index:1;text-align:center}
+.mhero .m img{width:156px;max-height:170px;object-fit:contain;filter:drop-shadow(0 16px 20px #00000045)}
+.mhero .m .em{font-size:84px;line-height:1.1}
+.phero{position:relative;overflow:hidden;border-radius:28px;padding:18px 18px 16px;margin:0 0 10px;min-height:156px;
+  background:linear-gradient(145deg,#FFFFFF 0%,#EAF4FF 58%,#D3E8FF 100%);border:1px solid #D9E9F8;box-shadow:0 12px 30px #1C5FA41A}
+.phero:before{content:"";position:absolute;right:-30px;bottom:-40px;width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,#9ED0FF80 0%,#9ED0FF00 68%)}
+.phero .tx{position:relative;z-index:2;max-width:63%}
+.phero .hi{font-size:12.5px;color:var(--muted);font-weight:600}
+.phero h2{font-size:22px;font-weight:900;letter-spacing:-.8px;color:var(--navy);margin:2px 0 0;padding:0;line-height:1.3}
+.phero h2 em{font-style:normal;color:var(--blue)}
+.say{display:inline-block;margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:16px 16px 16px 4px;
+  padding:8px 11px;font-size:12px;font-weight:700;color:#35506A;line-height:1.45;box-shadow:0 6px 14px #1C5FA414;animation:pop .5s ease-out}
+.phero .m{position:absolute;right:2px;bottom:-4px;width:132px;z-index:1;text-align:center}
+.phero .m img{width:132px;max-height:146px;object-fit:contain;filter:drop-shadow(0 12px 16px #1C5FA44D)}
+.phero .m .em{font-size:70px;line-height:1.2}
+.phero .spark{color:var(--blue2)}
+.talk{display:flex;align-items:flex-end;gap:8px;margin:16px 0 4px}
+.talk .m{flex:0 0 86px;position:relative;text-align:center}
+.talk .m img{width:86px;height:86px;object-fit:contain;filter:drop-shadow(0 10px 12px #1C5FA433)}
+.talk .m .em{font-size:52px}
+.talk .m:after{content:"";position:absolute;left:20px;right:20px;bottom:-5px;height:8px;border-radius:50%;background:#1C5FA424;filter:blur(2px)}
+.bubble{flex:1;position:relative;background:#fff;border:1px solid var(--line);border-radius:22px 22px 22px 6px;padding:13px 15px;
+  font-size:13.5px;font-weight:650;color:var(--navy);line-height:1.55;box-shadow:0 8px 20px #1C5FA414;margin-bottom:26px;animation:pop .5s ease-out}
+.bubble small{display:block;color:var(--blue);font-size:11px;font-weight:850;margin-bottom:3px;letter-spacing:.3px}
+.rec .mimg{width:66px;height:66px;object-fit:contain;flex:0 0 66px;filter:drop-shadow(0 8px 10px #1C5FA433)}
+.empty img{width:92px;height:92px;object-fit:contain;display:block;margin:0 auto 6px}
+@media(max-width:400px){
+  .mhero .m,.mhero .m img{width:128px}.phero .m,.phero .m img{width:110px}.mhero .big{font-size:24px}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -825,14 +872,33 @@ def html_block(markup):
     st.markdown(markup, unsafe_allow_html=True)
 
 
-def app_head(small, title, which="scan"):
-    img = mascot_img(which)
+BRAND = '<div class="brand-row"><b>CHECKI</b><span>CHECK BEFORE YOU BUY</span></div>'
+SPARKS = ('<span class="spark" style="right:44%;top:18px">✦</span>'
+          '<span class="spark" style="right:10%;top:22px;animation-delay:.8s">✦</span>'
+          '<span class="spark" style="right:36%;bottom:26px;animation-delay:1.5s;font-size:10px">✦</span>')
+MASCOT_FALLBACK = {"scan": "🤖", "search": "🔍", "wait": "⏳", "chart": "📊"}
+
+
+def mascot_or_emoji(which):
+    img = mascot_img(which, "float")
+    return img or f'<div class="em float">{MASCOT_FALLBACK.get(which, "🤖")}</div>'
+
+
+def app_head(small, title):
+    html_block(f'<div class="app-head"><div>{BRAND}<div class="hi">{safe(small)}</div><h2>{title}</h2></div></div>')
+
+
+def page_hero(small, title, which, say):
     html_block(
-        '<div class="app-head"><div>'
-        '<div class="brand-row"><b>CHECKI</b><span>CHECK BEFORE YOU BUY</span></div>'
-        f'<div class="hi">{safe(small)}</div><h2>{title}</h2></div>'
-        f'<div class="avatar">{img or "🔎"}</div></div>'
+        f'<div class="phero">{SPARKS}<div class="tx">{BRAND}<div class="hi">{safe(small)}</div><h2>{title}</h2>'
+        f'<div class="say">💬 {safe(say)}</div></div><div class="m">{mascot_or_emoji(which)}</div></div>'
     )
+
+
+def talk(which, label, text):
+    img = mascot_img(which, "float") or f'<div class="em float">{MASCOT_FALLBACK.get(which, "🤖")}</div>'
+    html_block(f'<div class="talk"><div class="m">{img}</div>'
+               f'<div class="bubble"><small>{safe(label)}</small>{safe(text)}</div></div>')
 
 
 def sec(title, right="", sub=""):
@@ -845,8 +911,9 @@ def step(n, title):
     html_block(f'<div class="step"><i>{n}</i>{safe(title)}</div>')
 
 
-def empty(icon, text):
-    html_block(f'<div class="empty"><span class="e">{icon}</span>{text}</div>')
+def empty(icon, text, which=None):
+    img = mascot_img(which, "float") if which else ""
+    html_block(f'<div class="empty">{img or f"<span class=e>{icon}</span>"}{text}</div>')
 
 
 def tiles(items):
@@ -977,7 +1044,7 @@ if hasattr(st, "segmented_control"):
                       format_func=lambda x: f"{NAV_ICON.get(x, '')} {x}")
     try:
         page = st.segmented_control("메뉴", NAV, width="stretch", **nav_kwargs)
-    except TypeError:  # width 옵션이 없는 버전
+    except Exception:  # width 옵션이 없는 구버전
         page = st.segmented_control("메뉴", NAV, **nav_kwargs)
     if page not in NAV:  # 선택된 탭을 다시 눌러 해제된 경우 → 이전 탭 유지
         go(ss.get("last_nav", "홈"))
@@ -990,28 +1057,19 @@ p = profile
 
 # ---------------- 홈 ----------------
 if page == "홈":
-    app_head(f"{greeting(p['now'].hour)} 👋", "오늘도 <em>똑똑한 소비</em> 해요", "scan")
-
-    if p["has_data"]:
-        budget, spent = p["budget"], p["month_spent"]
-        pct = spent / budget * 100 if budget else 0
-        left = p["budget_left"]
-        html_block(
-            '<div class="hero"><div class="row"><div>'
-            f'<span class="pill">{p["now"].month}월 예산</span>'
-            f'<div class="label">{"남은 예산" if left >= 0 else "예산 초과"}</div>'
-            f'<div class="big">{money(abs(left))}</div>'
-            f'<div class="sub">{money(budget)} 중 {money(spent)} 사용</div></div>'
-            f'{ring_html(pct, f"{pct:.0f}%", "사용")}</div></div>'
-        )
-    else:
-        html_block(
-            '<div class="hero-intro"><span class="pill" style="background:#FFFFFF2B;border:1px solid #FFFFFF40;'
-            'padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800">AI 구매 판단 도우미</span>'
-            '<h1>사기 전에,<br>체키 해보세요</h1>'
-            '<p>구매 유도 요소와 나의 소비 패턴을 함께 보고 지금 사도 될지 알려드려요.</p>'
-            f'{mascot_img("search")}</div>'
-        )
+    app_head(f"{greeting(p['now'].hour)} 👋", "오늘도 <em>똑똑한 소비</em> 해요")
+    budget, spent = p["budget"], p["month_spent"]
+    pct = spent / budget * 100 if budget else 0
+    left = p["budget_left"]
+    html_block(
+        f'<div class="mhero">{SPARKS}<div class="tx">'
+        f'<span class="pill">{p["now"].month}월 예산 · 체키와 함께</span>'
+        f'<div class="label">{"남은 예산" if left >= 0 else "예산 초과"}</div>'
+        f'<div class="big">{money(abs(left))}</div>'
+        f'<div class="bar"><i style="width:{min(100, pct):.0f}%"></i></div>'
+        f'<div class="sub">{money(budget)} 중 {pct:.0f}% 사용</div></div>'
+        f'<div class="m">{mascot_or_emoji("scan")}</div></div>'
+    )
 
     if st.button("🔎 지금 구매체크 시작하기", type="primary", use_container_width=True, key="home_cta"):
         go("체크")
@@ -1025,7 +1083,17 @@ if page == "홈":
     ready = [r for r in records if r.get("decision") == "HOLD"
              and (parse_date(r.get("hold_until")) or now_kst()) <= now_kst()]
     if ready:
-        html_block(f'<div class="notice">⏰ 30분이 지난 보류 상품이 {len(ready)}개 있어요</div>')
+        tip = (f"30분이 지난 보류 상품이 {len(ready)}개 있어요. 지금도 꼭 필요한지 같이 생각해봐요!", "wait")
+    elif p["now"].hour in LATE_NIGHT:
+        tip = ("지금은 심야 시간이에요. 피곤할 땐 충동구매가 늘어나니 내일 다시 볼까요?", "wait")
+    elif pct >= 80:
+        tip = (f"이번 달 예산을 {pct:.0f}% 썼어요. 남은 기간은 조금만 아껴봐요!", "chart")
+    elif p["saved"] > 0:
+        tip = (f"지금까지 {money(p['saved'])}을 아꼈어요. 정말 멋져요!", "chart")
+    else:
+        tip = ("사기 전에 30분만 기다려도 충동구매가 확 줄어들어요. 저랑 같이 체크해봐요!", "search")
+    talk(tip[1], "체키의 한마디", tip[0])
+    if ready:
         if st.button("결정하러 가기", use_container_width=True, key="home_ready"):
             go("기록")
             st.rerun()
@@ -1052,11 +1120,12 @@ if page == "홈":
                          f'<span class="badge {safe(dcs)}">{DECISION_BADGE.get(dcs, safe(dcs))}</span>'))
         html_block(list_html(rows))
     else:
-        empty("🔎", "아직 체크한 상품이 없어요.<br>첫 구매체크를 시작해보세요.")
+        empty("🔎", "아직 체크한 상품이 없어요.<br>첫 구매체크를 시작해보세요.", "search")
 
 # ---------------- 체크 ----------------
 elif page == "체크":
-    app_head("구매 전 한 번 더", "구매 <em>체크</em>하기", "search")
+    page_hero("구매 전 한 번 더", "구매 <em>체크</em>하기", "search",
+              "화면을 보여주면 숨은 구매 유도를 찾아낼게요!")
 
     step(1, "상품 정보")
     product_name = st.text_input("상품명", placeholder="예: 무선 이어폰", key="in_name")
@@ -1140,11 +1209,13 @@ elif page == "체크":
         )
         rec = result.get("recommend", "HOLD")
         icon, rec_title = RECOMMEND.get(rec, RECOMMEND["HOLD"])
+        rec_img = mascot_img({"BUY": "scan", "HOLD": "wait", "RECONSIDER": "search"}.get(rec, "wait"), "mimg float")
+        rec_visual = rec_img or f'<div class="icon">{icon}</div>'
         price_txt = (f"확인된 가격 {money(result['price'])}" if number(result["price"]) > 0
                      else "가격 미확인 · 포기 시 절약 금액 0원으로 기록")
         html_block(
             f'<div class="card"><div class="kicker">STEP 2 · 나에게 맞춘 판단</div>'
-            f'<div class="rec {safe(rec)}"><div class="icon">{icon}</div><div><b>{rec_title}</b>'
+            f'<div class="rec {safe(rec)}">{rec_visual}<div><b>{rec_title}</b>'
             f'<span>{safe(result.get("personal"))}</span></div></div>'
             f'{chips_html(result.get("signals", []))}'
             f'<div class="meta" style="margin-top:10px">💳 {safe(price_txt)}</div></div>'
@@ -1191,10 +1262,15 @@ elif page == "체크":
 
 # ---------------- 리포트 ----------------
 elif page == "리포트":
-    app_head("쌓인 기록으로 분석한", "나의 <em>소비 리포트</em>", "chart")
+    if p["month_by_cat"]:
+        top_cat, top_amt = p["month_by_cat"].most_common(1)[0]
+        say = f"이번 달엔 {top_cat}에 가장 많이 썼어요 ({money(top_amt)})"
+    else:
+        say = "기록이 쌓이면 소비 습관을 분석해드릴게요!"
+    page_hero("쌓인 기록으로 분석한", "나의 <em>소비 리포트</em>", "chart", say)
 
     if not expenses:
-        empty("📊", "아직 소비 기록이 없어요.<br>체험용 샘플로 리포트를 미리 볼 수 있어요.")
+        empty("📊", "아직 소비 기록이 없어요.<br>체험용 샘플로 리포트를 미리 볼 수 있어요.", "chart")
         if st.button("✨ 체험용 샘플 소비 넣기", type="primary", use_container_width=True, key="sample"):
             add_sample_data()
             ss["notice"] = "샘플 소비 10건을 넣었어요."
@@ -1285,10 +1361,13 @@ elif page == "리포트":
 
 # ---------------- 기록 ----------------
 elif page == "기록":
-    app_head("보류 중인 상품과 결정 내역", "나의 <em>체키 기록</em>", "wait")
+    holds = p["decisions"]["HOLD"]
+    say = (f"보류 중인 상품이 {holds}개 있어요. 조금만 더 참아봐요!" if holds
+           else "사지 않은 만큼 저금통이 채워져요 🐷")
+    page_hero("보류 중인 상품과 결정 내역", "나의 <em>체키 기록</em>", "wait", say)
     piggy_card(records)
     if not records:
-        empty("🗂️", "아직 체키 기록이 없어요.<br>구매체크를 먼저 해보세요.")
+        empty("🗂️", "아직 체키 기록이 없어요.<br>구매체크를 먼저 해보세요.", "wait")
         if st.button("🔎 구매체크 하러 가기", type="primary", use_container_width=True, key="rec_cta"):
             go("체크")
             st.rerun()
