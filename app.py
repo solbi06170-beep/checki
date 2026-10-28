@@ -12,6 +12,7 @@ import re
 import os
 import base64
 import html
+import time
 
 # =============================================================
 # CHECKI v5 (참가신청서 기준: 탐지 → 검증 → 개인화 → 판단 지원)
@@ -1074,7 +1075,110 @@ except Exception:
 # =============================================================
 # 화면
 # =============================================================
+# ---------------- 발표 모드 (시연 단축) ----------------
+DEMO_PRODUCT = ("Balance 러닝 운동화", "패션/의류", 90300)
+DEMO_RAW = """PRODUCT_NAME: Balance 러닝 운동화
+PRICE: 90300
+RISK_LEVEL: HIGH
+RISK_SCORE: 78
+SUMMARY: 할인 마감 타이머와 남은 수량 표시로 구매를 서두르게 하고, 결제 단계에서 비용이 추가돼요.
+DETECTED: 마감 임박 타이머, 남은 수량 압박, 정가 부풀리기, 결제 단계 추가 비용
+PATTERN: 압박형 | 마감 임박 타이머 | 오늘만 30% 할인 · 02:59:41 남음 | 남은 시간을 보여줘 충분히 비교하지 못하게 해요
+PATTERN: 압박형 | 남은 수량 압박 | 재고 3개 남음 | 지금 안 사면 못 산다는 불안감을 줘요
+PATTERN: 오도형 | 정가 부풀리기 | 정가 129,000원 → 90,300원 | 평소 판매가보다 높은 정가로 할인이 커 보이게 해요
+PATTERN: 편취형 | 결제 단계 추가 비용 | 배송 안심 서비스 +2,900원 (기본 선택) | 원하지 않은 옵션이 미리 선택돼 결제 금액이 늘어나요
+VERIFY: 표시된 할인율 30%는 정가 129,000원 기준이에요. 결제 단계에서 기본 선택된 옵션 2,900원이 더해져 실제 결제 금액은 93,200원이에요.
+ADVICE: 기본 선택된 추가 옵션을 해제하고, 다른 판매처의 평소 가격과 비교해보세요.
+RECOMMEND: RECONSIDER"""
+
+DEMO_RECORDS = [
+    # (상품, 카테고리, 가격, 결정, 며칠 전, 위험도, 점수, 요약, PATTERN 줄들)
+    ("1+1 바디로션 500ml", "뷰티", 26820, "NOT_BUY", 6, "MEDIUM", 61,
+     "1+1 가격이 낱개 2개 가격보다 비싸요.",
+     ["오도형 | 묶음 단가 함정 | 1+1 26,820원 | 낱개 9,410원 ×2보다 8,000원 비싸요"]),
+    ("타임세일 블루투스 스피커", "전자기기", 59000, "NOT_BUY", 11, "HIGH", 74,
+     "타임세일 타이머와 부풀린 정가로 할인을 크게 보이게 해요.",
+     ["압박형 | 타임세일 타이머 | 00:14:59 후 종료 | 판단 시간을 줄여요",
+      "오도형 | 할인 과장 | 정가 99,000원 → 59,000원 | 평소 판매가보다 높은 정가예요"]),
+    ("OTT 첫 달 무료 체험", "구독서비스", 13900, "HOLD", 0, "HIGH", 70,
+     "무료 체험 뒤 별도 안내 없이 유료로 전환될 수 있어요.",
+     ["편취형 | 무료체험 후 자동결제 | 첫 달 무료, 이후 월 13,900원 | 다음 달부터 자동으로 청구돼요"]),
+    ("오버핏 후드티", "패션/의류", 39000, "BUY", 20, "LOW", 22,
+     "뚜렷한 구매 유도 요소는 보이지 않아요.", []),
+]
+
+
+def demo_on():
+    return str(st.query_params.get("demo") or "1") != "0"
+
+
+def seed_demo():
+    """발표 모드: 접속하면 소비 내역과 체키 기록을 자동으로 채운다 (모든 화면이 바로 보이도록)."""
+    add_sample_data()
+    now = now_kst()
+    for name, cat, price, decision, days, level, score, summary, pats in DEMO_RECORDS:
+        raw = "\n".join([f"PRODUCT_NAME: {name}", f"PRICE: {price}"] + [f"PATTERN: {x}" for x in pats])
+        result = {"product_name": name, "price": price, "risk_level": level, "risk_score": score,
+                  "summary": summary, "detected": ", ".join(x.split("|")[1].strip() for x in pats) or "없음",
+                  "raw": raw}
+        row = insert_record(result, cat, decision, price if decision == "NOT_BUY" else 0)
+        if row and row in local("local_records"):
+            when = now - timedelta(days=days, hours=2)
+            row["created_at"] = when.isoformat()
+            if decision != "HOLD":
+                row["decided_at"] = (when + timedelta(minutes=40)).isoformat()
+                row["hold_started_at"] = (when + timedelta(minutes=5)).isoformat() if decision == "NOT_BUY" else None
+            else:
+                row["hold_started_at"] = (now - timedelta(minutes=12)).isoformat()
+                row["hold_until"] = (now + timedelta(minutes=18)).isoformat()
+    ss["demo_seeded"] = True
+    ss["onboarded"] = True
+
+
+def demo_analysis(p):
+    """예시 화면 분석 결과 (AI 호출 없이 즉시) — 개인 소비데이터 비교는 실제 계산."""
+    name, cat, price = DEMO_PRODUCT
+    signals = personal_signals(p, name, cat, price)
+    highs = [t for lv, t in signals if lv == "high"] or [t for lv, t in signals if lv == "mid"]
+    personal = " ".join(highs[:2]) or "지금까지의 소비 기록에서 특별히 걸리는 점은 없어요."
+    context = profile_to_text(p, cat, price, signals)
+    raw = DEMO_RAW + f"\nPERSONAL: {personal}"
+    result = {
+        "product_name": name, "price": price, "risk_level": "HIGH", "risk_score": 78,
+        "summary": parse_field(raw, "SUMMARY"), "detected": parse_field(raw, "DETECTED"),
+        "patterns": parse_patterns(raw), "subscription": False,
+        "verify": parse_field(raw, "VERIFY"), "advice": parse_field(raw, "ADVICE"),
+        "recommend": "RECONSIDER", "personal": personal, "annotated": None, "box_labels": [],
+        "context": context, "raw": raw + "\n\n" + context, "signals": signals,
+    }
+    result["need"] = need_score(78, signals)
+    return result
+
+
+def run_demo_analysis(p, animate=True):
+    box = st.empty()
+    for i in range(len(LOADER_STEPS) + 1):
+        box.markdown(loader_html(i), unsafe_allow_html=True)
+        if animate:
+            time.sleep(0.35)
+    result = demo_analysis(p)
+    ss["latest_analysis"] = result
+    ss["latest_category"] = DEMO_PRODUCT[1]
+    ss["latest_record"] = insert_record(result, DEMO_PRODUCT[1], "PENDING")
+    ss.pop("purchase_action", None)
+    box.empty()
+
+
+def reset_demo():
+    for key in ("local_expenses", "local_records", "demo_seeded", "ai_report", "buy_record",
+                "latest_analysis", "latest_record", "latest_category", "purchase_action"):
+        ss.pop(key, None)
+
+
 expenses, records = get_expenses(), get_records()
+if demo_on() and not ss.get("demo_seeded") and not expenses and not records:
+    seed_demo()
+    expenses, records = get_expenses(), get_records()
 profile = build_profile(expenses, records)
 
 if "pending_nav" in ss:
@@ -1142,9 +1246,16 @@ if page == "홈":
             f'<div class="sub">{money(budget)} 중 {pct:.0f}% 사용</div></div>'
             f'<div class="m">{mascot_or_emoji("scan")}</div></div>'
         )
-        if st.button("🔎 지금 구매체크 시작하기", type="primary", use_container_width=True, key="home_cta"):
-            go("체크")
-            st.rerun()
+        h1, h2 = st.columns(2)
+        with h1:
+            if st.button("⚡ 예시로 바로 체험", type="primary", use_container_width=True, key="home_demo"):
+                ss["run_demo"] = True
+                go("체크")
+                st.rerun()
+        with h2:
+            if st.button("🔎 직접 체크하기", use_container_width=True, key="home_cta"):
+                go("체크")
+                st.rerun()
 
         tiles([
             ("💳", "이번 달 소비", money(p["month_spent"]), "blue"),
@@ -1238,6 +1349,9 @@ elif page == "체크":
                f'<span>{CAT_ICON.get(category, "")} {safe(category)} 예산 {used / cb * 100 if cb else 0:.0f}% 사용</span>'
                f'<span>💰 남은 예산 {money(p["budget_left"])}</span>'
                f'<span>🕒 지금 {time_slot(p["now"].hour)}</span></div>')
+
+    if st.button("⚡ 예시 쇼핑 화면으로 분석해보기", use_container_width=True, key="demo_run") or ss.pop("run_demo", False):
+        run_demo_analysis(p)
 
     if st.button("체키로 분석하기", type="primary", use_container_width=True, key="analyze"):
         url = (product_url or "").strip()
@@ -1677,6 +1791,14 @@ elif page == "기록":
                     if st.button("🙅 구매하지 않기", key=f"pending_no_{kid}", use_container_width=True):
                         if update_record(rid, "NOT_BUY", price):
                             st.rerun()
+
+if page == "기록" and demo_on():
+    html_block('<div style="height:18px"></div>')
+    if st.button("🔄 시연 처음 상태로 되돌리기", use_container_width=True, key="demo_reset"):
+        reset_demo()
+        ss["notice"] = "시연용 데이터를 처음 상태로 되돌렸어요."
+        go("홈")
+        st.rerun()
 
 if ss.get("notice"):
     st.toast(ss.pop("notice"))
