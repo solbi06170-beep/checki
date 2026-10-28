@@ -1016,7 +1016,7 @@ def _hold_timer_body(until_iso):
     html_block(
         f'<div class="hold"><small>⏱️ 생각하는 중</small>'
         f'<div class="clock">{secs // 60:02d}:{secs % 60:02d}</div>'
-        f'<small>타이머가 끝나면 구매 여부를 결정할 수 있어요.</small></div>'
+        f'<small>기다리는 중에도 아래에서 바로 결정할 수 있어요.</small></div>'
     )
 
 
@@ -1391,25 +1391,28 @@ elif page == "기록":
                         st.rerun()
                 else:
                     html_block('<div class="notice">⏰ 30분이 지났어요. 지금도 꼭 필요한가요?</div>')
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("🙅 안 샀어요", key=f"no_{kid}", use_container_width=True):
-                            if update_record(rid, "NOT_BUY", price):
-                                ss["notice"] = f"{money(price)}을(를) 저금통에 담았어요."
-                                st.rerun()
-                    with col2:
-                        if st.button("🛒 샀어요", key=f"yes_{kid}", use_container_width=True):
-                            ss["buy_record"] = kid
-                    if ss.get("buy_record") == kid:
-                        actual = st.number_input("실제 결제 금액", min_value=0, step=1000,
-                                                 value=price, key=f"amount_{kid}")
-                        if st.button("구매 내역 저장", key=f"save_{kid}", type="primary",
-                                     use_container_width=True):
-                            if update_record(rid, "BUY"):
-                                add_expense(str(record.get("category") or "기타"), product, actual)
-                                ss.pop("buy_record", None)
-                                ss["notice"] = "구매 내역을 저장했어요."
-                                st.rerun()
+                # 타이머 진행 중에도 언제든 결정 가능
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("🙅 안 살래요", key=f"no_{kid}", use_container_width=True,
+                                 type="primary" if seconds > 0 else "secondary"):
+                        if update_record(rid, "NOT_BUY", price):
+                            ss.pop("buy_record", None)
+                            ss["notice"] = f"{money(price)}을(를) 저금통에 담았어요."
+                            st.rerun()
+                with col2:
+                    if st.button("🛒 살게요", key=f"yes_{kid}", use_container_width=True):
+                        ss["buy_record"] = kid
+                if ss.get("buy_record") == kid:
+                    actual = st.number_input("실제 결제 금액", min_value=0, step=1000,
+                                             value=price, key=f"amount_{kid}")
+                    if st.button("구매 내역 저장", key=f"save_{kid}", type="primary",
+                                 use_container_width=True):
+                        if update_record(rid, "BUY"):
+                            add_expense(str(record.get("category") or "기타"), product, actual)
+                            ss.pop("buy_record", None)
+                            ss["notice"] = "구매 내역을 저장했어요."
+                            st.rerun()
             elif decision == "NOT_BUY":
                 st.caption(f"💚 {money(record.get('saved_amount'))} 절약")
             elif decision == "PENDING":
